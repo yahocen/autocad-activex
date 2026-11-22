@@ -1,0 +1,14 @@
+autocad-activex 许可说明
+
+Copyright (c) 2026 Yahocen. All rights reserved.
+
+本仓库包含两部分，许可不同：
+
+1. io.github.yahocen.jacob 包 + jtcom 原生库（native/）
+   JACOB 项目的修改分支，遵循 GNU Lesser General Public License 2.1。
+   完整许可证文本见 LICENSE-LGPL-2.1，修改说明见 NOTICE。
+
+2. io.github.yahocen.acad 包（AutoCAD 对象模型）
+   作者原创作品。许可条款待定，当前保留所有权利。
+   在条款明确之前，未经作者书面许可不得复制、分发或用于商业用途。
+   联系作者：yahocen@hotmail.com

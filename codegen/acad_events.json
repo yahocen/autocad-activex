@@ -1,0 +1,435 @@
+{
+  "IAcadObjectEvents": [
+    {
+      "name": "Modified",
+      "params": [
+        {
+          "name": "pObject",
+          "type": "Dispatch"
+        }
+      ]
+    }
+  ],
+  "DAcadApplicationEvents": [
+    {
+      "name": "SysVarChanged",
+      "params": [
+        {
+          "name": "SysvarName",
+          "type": "String"
+        },
+        {
+          "name": "newVal",
+          "type": "Variant"
+        }
+      ]
+    },
+    {
+      "name": "NewDrawing",
+      "params": []
+    },
+    {
+      "name": "AppActivate",
+      "params": []
+    },
+    {
+      "name": "AppDeactivate",
+      "params": []
+    },
+    {
+      "name": "WindowMovedOrResized",
+      "params": [
+        {
+          "name": "HWNDFrame",
+          "type": "int"
+        },
+        {
+          "name": "bMoved",
+          "type": "boolean"
+        }
+      ]
+    },
+    {
+      "name": "BeginModal",
+      "params": []
+    },
+    {
+      "name": "EndModal",
+      "params": []
+    },
+    {
+      "name": "BeginQuit",
+      "params": [
+        {
+          "name": "Cancel",
+          "type": "Object"
+        }
+      ]
+    },
+    {
+      "name": "BeginFileDrop",
+      "params": [
+        {
+          "name": "FileName",
+          "type": "String"
+        },
+        {
+          "name": "Cancel",
+          "type": "Object"
+        }
+      ]
+    },
+    {
+      "name": "ARXLoaded",
+      "params": [
+        {
+          "name": "AppName",
+          "type": "String"
+        }
+      ]
+    },
+    {
+      "name": "ARXUnloaded",
+      "params": [
+        {
+          "name": "AppName",
+          "type": "String"
+        }
+      ]
+    },
+    {
+      "name": "BeginPlot",
+      "params": [
+        {
+          "name": "DrawingName",
+          "type": "String"
+        }
+      ]
+    },
+    {
+      "name": "EndPlot",
+      "params": [
+        {
+          "name": "DrawingName",
+          "type": "String"
+        }
+      ]
+    },
+    {
+      "name": "BeginSave",
+      "params": [
+        {
+          "name": "FileName",
+          "type": "String"
+        }
+      ]
+    },
+    {
+      "name": "EndSave",
+      "params": [
+        {
+          "name": "FileName",
+          "type": "String"
+        }
+      ]
+    },
+    {
+      "name": "BeginOpen",
+      "params": [
+        {
+          "name": "FileName",
+          "type": "Object"
+        }
+      ]
+    },
+    {
+      "name": "EndOpen",
+      "params": [
+        {
+          "name": "FileName",
+          "type": "String"
+        }
+      ]
+    },
+    {
+      "name": "BeginCommand",
+      "params": [
+        {
+          "name": "CommandName",
+          "type": "String"
+        }
+      ]
+    },
+    {
+      "name": "EndCommand",
+      "params": [
+        {
+          "name": "CommandName",
+          "type": "String"
+        }
+      ]
+    },
+    {
+      "name": "BeginLisp",
+      "params": [
+        {
+          "name": "FirstLine",
+          "type": "String"
+        }
+      ]
+    },
+    {
+      "name": "EndLisp",
+      "params": []
+    },
+    {
+      "name": "LispCancelled",
+      "params": []
+    },
+    {
+      "name": "WindowChanged",
+      "params": [
+        {
+          "name": "WindowState",
+          "type": "int"
+        }
+      ]
+    }
+  ],
+  "DAcadDocumentEvents": [
+    {
+      "name": "BeginSave",
+      "params": [
+        {
+          "name": "FileName",
+          "type": "String"
+        }
+      ]
+    },
+    {
+      "name": "EndSave",
+      "params": [
+        {
+          "name": "FileName",
+          "type": "String"
+        }
+      ]
+    },
+    {
+      "name": "BeginCommand",
+      "params": [
+        {
+          "name": "CommandName",
+          "type": "String"
+        }
+      ]
+    },
+    {
+      "name": "EndCommand",
+      "params": [
+        {
+          "name": "CommandName",
+          "type": "String"
+        }
+      ]
+    },
+    {
+      "name": "BeginLisp",
+      "params": [
+        {
+          "name": "FirstLine",
+          "type": "String"
+        }
+      ]
+    },
+    {
+      "name": "EndLisp",
+      "params": []
+    },
+    {
+      "name": "LispCancelled",
+      "params": []
+    },
+    {
+      "name": "SelectionChanged",
+      "params": []
+    },
+    {
+      "name": "Activate",
+      "params": []
+    },
+    {
+      "name": "Deactivate",
+      "params": []
+    },
+    {
+      "name": "BeginRightClick",
+      "params": [
+        {
+          "name": "PickPoint",
+          "type": "Variant"
+        }
+      ]
+    },
+    {
+      "name": "BeginShortcutMenuDefault",
+      "params": [
+        {
+          "name": "ShortcutMenu",
+          "type": "Object"
+        }
+      ]
+    },
+    {
+      "name": "BeginShortcutMenuEdit",
+      "params": [
+        {
+          "name": "ShortcutMenu",
+          "type": "Object"
+        },
+        {
+          "name": "SelectionSet",
+          "type": "Object"
+        }
+      ]
+    },
+    {
+      "name": "BeginShortcutMenuCommand",
+      "params": [
+        {
+          "name": "ShortcutMenu",
+          "type": "Object"
+        },
+        {
+          "name": "Command",
+          "type": "String"
+        }
+      ]
+    },
+    {
+      "name": "BeginShortcutMenuGrip",
+      "params": [
+        {
+          "name": "ShortcutMenu",
+          "type": "Object"
+        }
+      ]
+    },
+    {
+      "name": "BeginShortcutMenuOsnap",
+      "params": [
+        {
+          "name": "ShortcutMenu",
+          "type": "Object"
+        }
+      ]
+    },
+    {
+      "name": "EndShortcutMenu",
+      "params": [
+        {
+          "name": "ShortcutMenu",
+          "type": "Object"
+        }
+      ]
+    },
+    {
+      "name": "BeginDoubleClick",
+      "params": [
+        {
+          "name": "PickPoint",
+          "type": "Variant"
+        }
+      ]
+    },
+    {
+      "name": "ObjectAdded",
+      "params": [
+        {
+          "name": "Object",
+          "type": "Dispatch"
+        }
+      ]
+    },
+    {
+      "name": "ObjectErased",
+      "params": [
+        {
+          "name": "ObjectID",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "ObjectModified",
+      "params": [
+        {
+          "name": "Object",
+          "type": "Dispatch"
+        }
+      ]
+    },
+    {
+      "name": "BeginPlot",
+      "params": [
+        {
+          "name": "DrawingName",
+          "type": "String"
+        }
+      ]
+    },
+    {
+      "name": "EndPlot",
+      "params": [
+        {
+          "name": "DrawingName",
+          "type": "String"
+        }
+      ]
+    },
+    {
+      "name": "WindowMovedOrResized",
+      "params": [
+        {
+          "name": "HWNDFrame",
+          "type": "long"
+        },
+        {
+          "name": "bMoved",
+          "type": "boolean"
+        }
+      ]
+    },
+    {
+      "name": "LayoutSwitched",
+      "params": [
+        {
+          "name": "LayoutName",
+          "type": "String"
+        }
+      ]
+    },
+    {
+      "name": "WindowChanged",
+      "params": [
+        {
+          "name": "WindowState",
+          "type": "int"
+        }
+      ]
+    },
+    {
+      "name": "BeginClose",
+      "params": []
+    },
+    {
+      "name": "BeginDocClose",
+      "params": [
+        {
+          "name": "Cancel",
+          "type": "Object"
+        }
+      ]
+    }
+  ]
+}
