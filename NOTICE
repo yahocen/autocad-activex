@@ -1,15 +1,20 @@
 autocad-activex
-Copyright (c) 2026 Yahocen.
+Copyright 2026 Yahocen
 
 This product includes software developed by the JACOB Project
-(http://sourceforge.net/projects/jacob-project), Copyright (c) 1999-2007
-Sourceforge JACOB Project / Dan Adler.
+(http://sourceforge.net/projects/jacob-project,
+maintained at https://github.com/freemansoft/jacob-project),
+Copyright (c) 1999-2007 Sourceforge JACOB Project / Dan Adler.
 
-The io.github.yahocen.jacob package and the jacobcom native library are a
-modified fork of JACOB, licensed under the GNU Lesser General Public
-License version 2.1 (see LICENSE-LGPL-2.1). Modifications include:
-package rename, JNI symbol rename, removal of the DLL path/name override
-mechanism, and bundling of the native library as a jar resource.
+License structure of this repository:
 
-The io.github.yahocen.acad package is original work by Yahocen, generated
-from the AutoCAD ActiveX type library. See LICENSE for its terms.
+- The io.github.yahocen.acad package and all other original code are
+  licensed under the Apache License, Version 2.0 (see LICENSE).
+
+- The io.github.yahocen.jacob package and the jacobcom native library
+  (native/) are a modified fork of JACOB, licensed under the GNU Lesser
+  General Public License version 2.1 (see LICENSE-LGPL-2.1).
+  Modifications include: package rename, JNI symbol rename, removal of
+  the DLL path/name override mechanism, and bundling of the native
+  library as a jar resource. The LGPL terms continue to apply to these
+  components; the Apache-2.0 license covers the rest of the work.

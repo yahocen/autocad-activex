@@ -1,7 +1,9 @@
+// Copyright 2026 Yahocen
+// SPDX-License-Identifier: Apache-2.0
 package io.github.yahocen.acad.document;
 
 import io.github.yahocen.acad.common.Disp;
-import cn.hutool.core.thread.ThreadUtil;
+import io.github.yahocen.acad.common.Internal;
 import io.github.yahocen.jacob.com.ComFailException;
 import io.github.yahocen.jacob.com.Dispatch;
 import io.swagger.v3.oas.annotations.Operation;
@@ -58,13 +60,13 @@ public class Documents extends ComCollection<Document> {
         while(true) {
             try {
                 doc.getModelSpace();
-                ThreadUtil.sleep(200);
+                Internal.sleep(200);
                 return doc;
             } catch(ComFailException e) {
                 if(System.currentTimeMillis() - startTime > 5000) {
                     throw new TimeoutException("文档打开超时");
                 }
-                ThreadUtil.sleep(100);
+                Internal.sleep(100);
             }
         }
     }

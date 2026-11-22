@@ -1,6 +1,8 @@
+// Copyright 2026 Yahocen
+// SPDX-License-Identifier: Apache-2.0
 package io.github.yahocen.acad.util;
 
-import cn.hutool.core.util.ReflectUtil;
+import io.github.yahocen.acad.common.Internal;
 import io.github.yahocen.jacob.com.Dispatch;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -32,7 +34,7 @@ public class EntityUtil {
 
     @Operation(summary = "解析实体", description = "将 Dispatch 对象解析为指定类型的实体")
     public static <T extends AcadEntity> T parse(@Parameter(description = "Dispatch 对象") Dispatch acadElement, @Parameter(description = "实体类型") Class<T> clazz) {
-        return ReflectUtil.newInstance(clazz, acadElement);
+        return Internal.newInstance(clazz, acadElement);
     }
 
     @Operation(summary = "解析实体", description = "根据对象名称自动解析为对应类型的实体")

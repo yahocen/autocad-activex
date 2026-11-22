@@ -1,6 +1,7 @@
+// Copyright 2026 Yahocen
+// SPDX-License-Identifier: Apache-2.0
 package io.github.yahocen.acad.common;
 
-import cn.hutool.core.util.StrUtil;
 
 /**
  * @author Yahocen
@@ -8,11 +9,11 @@ import cn.hutool.core.util.StrUtil;
 public class AcadException extends RuntimeException {
 
   public AcadException(String message, Throwable cause, Object... args) {
-      super(StrUtil.format(message, args), cause);
+      super(Internal.format(message, args), cause);
   }
 
   public AcadException(String message, Object... args) {
-    super(StrUtil.format(message, args), null);
+    super(Internal.format(message, args), null);
   }
 
 }

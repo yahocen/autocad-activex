@@ -265,6 +265,8 @@ def gen_entity(cls_name, data):
     new_methods = [m for m in data['methods'] if m['name'] not in inh_methods]
 
     lines = []
+    lines.append('// Copyright 2026 Yahocen')
+    lines.append('// SPDX-License-Identifier: Apache-2.0')
     lines.append('package io.github.yahocen.acad.document.element;')
     lines.append('')
     lines.append('import io.github.yahocen.jacob.com.Dispatch;')
@@ -408,6 +410,8 @@ def gen_event_sink(event_name, event_methods):
     java_name = EVENT_SINK_NAMES.get(event_name, event_name.replace('Events', 'EventSink'))
 
     lines = []
+    lines.append('// Copyright 2026 Yahocen')
+    lines.append('// SPDX-License-Identifier: Apache-2.0')
     lines.append('package io.github.yahocen.acad.event;')
     lines.append('')
     lines.append('import io.github.yahocen.jacob.com.Variant;')

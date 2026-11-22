@@ -10,37 +10,47 @@
 
     <name>autocad-activex</name>
     <description>AutoCAD ActiveX/COM automation for Java: generic COM bridge (io.github.yahocen.jacob, JACOB fork) + typed AutoCAD object model (io.github.yahocen.acad). Bundles jacobcom.dll, extracted and loaded at runtime. Late-bound (IDispatch): one mapping set drives multiple AutoCAD versions.</description>
+    <url>https://github.com/yahocen/autocad-activex</url>
+
+    <!-- 项目主体 Apache-2.0；jacob COM 桥接组件为 JACOB fork，沿用 LGPL-2.1（见 NOTICE / LICENSE-LGPL-2.1） -->
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>yahocen</id>
+            <name>Yahocen</name>
+            <email>yahocen@hotmail.com</email>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:https://github.com/yahocen/autocad-activex.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/yahocen/autocad-activex.git</developerConnection>
+        <url>https://github.com/yahocen/autocad-activex</url>
+    </scm>
 
     <properties>
         <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <hutool.version>5.8.42</hutool.version>
         <lombok.version>1.18.42</lombok.version>
         <swagger.version>2.2.41</swagger.version>
-        <jna.version>5.18.1</jna.version>
         <slf4j.version>2.0.17</slf4j.version>
     </properties>
 
+    <!-- 依赖面最小化：运行时仅 swagger-annotations（文档契约）+ slf4j-api（日志门面），
+         均无传递依赖；lombok 编译期消失。窗口操作走自带 jacobcom.dll 的 JNI，不引 JNA；
+         浅层工具用内部 Internal 类，不引 hutool。 -->
     <dependencies>
-        <dependency>
-            <groupId>cn.hutool</groupId>
-            <artifactId>hutool-core</artifactId>
-            <version>${hutool.version}</version>
-        </dependency>
         <dependency>
             <groupId>io.swagger.core.v3</groupId>
             <artifactId>swagger-annotations</artifactId>
             <version>${swagger.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna</artifactId>
-            <version>${jna.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna-platform</artifactId>
-            <version>${jna.version}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>

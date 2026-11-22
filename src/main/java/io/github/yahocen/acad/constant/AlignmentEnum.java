@@ -1,13 +1,16 @@
+// Copyright 2026 Yahocen
+// SPDX-License-Identifier: Apache-2.0
 package io.github.yahocen.acad.constant;
 
-import cn.hutool.core.lang.Console;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * <a href="https://help.autodesk.com/view/OARX/2024/CHS/?guid=GUID-27030E1C-6480-4A64-BE0A-E72C1FFF2023">Alignment Property (ActiveX)</a>
  * @author Yahocen
  */
+@Slf4j
 @AllArgsConstructor
 public enum AlignmentEnum {
 
@@ -25,7 +28,7 @@ public enum AlignmentEnum {
                 return value;
             }
         }
-        Console.log("AlignmentEnum not found: {}", alignment);
+        log.warn("AlignmentEnum not found: {}", alignment);
         return null;
     }
 

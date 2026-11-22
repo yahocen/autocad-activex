@@ -51,6 +51,8 @@ if not entries:
 # Group imports by package; java.util.Map and AcadEntity are fixed.
 packages = sorted({pkg for pkg, _ in entries.values()})
 lines = [
+    '// Copyright 2026 Yahocen',
+    '// SPDX-License-Identifier: Apache-2.0',
     'package io.github.yahocen.acad.util;',
     '',
     'import java.util.Map;',

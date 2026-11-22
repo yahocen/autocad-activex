@@ -1,7 +1,8 @@
+// Copyright 2026 Yahocen
+// SPDX-License-Identifier: Apache-2.0
 package io.github.yahocen.acad.document.manager;
 
 import io.github.yahocen.acad.common.Disp;
-import cn.hutool.core.util.StrUtil;
 import io.github.yahocen.jacob.com.ComFailException;
 import io.github.yahocen.jacob.com.Dispatch;
 import io.github.yahocen.jacob.com.Variant;
@@ -36,7 +37,7 @@ public class SelectionSets extends ComCollection<SelectionSet> {
         try {
             return item(name);
         } catch (ComFailException e) {
-            if(StrUtil.contains(e.getMessage(), "未找到主键")) {
+            if((e.getMessage() != null && e.getMessage().contains("未找到主键"))) {
                 return new SelectionSet(Disp.call(getClass(), dispatch, "Add", new Variant(name)).getDispatch());
             }
             throw e;

@@ -41,7 +41,7 @@ $libpaths = "/LIBPATH:`"$libJDK`" /LIBPATH:`"$libSDKum`" /LIBPATH:`"$libSDKuc`" 
 $cflags = '/c /nologo /MT /EHsc /O2 /W3 /utf-8 /D UNICODE /D _UNICODE /D _WIN32_WINNT=0x0A00 /D _CRT_SECURE_NO_DEPRECATE /D _CRT_NONSTDC_NO_DEPRECATE /D _STATIC_CPPLIB'
 $libs = 'jvm.lib oleaut32.lib ole32.lib advapi32.lib user32.lib'
 
-$srcFiles = @('ComThread','Dispatch','DispatchEvents','DispatchProxy','EnumVariant','EventProxy','SafeArray','STA','util','Variant')
+$srcFiles = @('ComThread','Dispatch','DispatchEvents','DispatchProxy','EnumVariant','EventProxy','SafeArray','STA','util','Variant','WindowHelper')
 
 Write-Host "=== Compiling ==="
 $objs = @()

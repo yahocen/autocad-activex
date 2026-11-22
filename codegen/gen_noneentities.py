@@ -371,7 +371,7 @@ def gen_nonentity(cls_name, data):
         out_dir = os.path.join(_PROJECT, 'src', 'main', 'java', 'io', 'github', 'yahocen', 'acad', 'document', 'manager')
 
     # Build file
-    code = f'package {pkg};\n\n'
+    code = f'// Copyright 2026 Yahocen\n// SPDX-License-Identifier: Apache-2.0\npackage {pkg};\n\n'
     for imp in sorted(imports):
         code += f'import {imp};\n'
     code += '\n'

@@ -1,7 +1,9 @@
+// Copyright 2026 Yahocen
+// SPDX-License-Identifier: Apache-2.0
 package io.github.yahocen.acad.document.base;
 
 import io.github.yahocen.acad.common.Disp;
-import cn.hutool.core.util.ReflectUtil;
+import io.github.yahocen.acad.common.Internal;
 import io.github.yahocen.jacob.com.ComFailException;
 import io.github.yahocen.jacob.com.Dispatch;
 import io.github.yahocen.jacob.com.Variant;
@@ -132,7 +134,7 @@ public class AcadEntity extends AcadObject {
 
     @Operation(summary = "复制实体", description = "复制实体为指定类型")
     public <T extends AcadEntity> T copy(@Parameter(description = "实体类型") Class<T> clazz) {
-        return ReflectUtil.newInstance(clazz, call("Copy").getDispatch());
+        return Internal.newInstance(clazz, call("Copy").getDispatch());
     }
 
     /**
@@ -149,7 +151,7 @@ public class AcadEntity extends AcadObject {
 
     @Operation(summary = "转换实体类型", description = "转换实体类型")
     public <T extends AcadEntity> T convert(@Parameter(description = "目标实体类型") Class<T> clazz) {
-        return ReflectUtil.newInstance(clazz, this.dispatch);
+        return Internal.newInstance(clazz, this.dispatch);
     }
 
     /**

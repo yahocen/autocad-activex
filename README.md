@@ -118,7 +118,7 @@ acad.addEventListener(new ApplicationEventSink() {
 | 包 | 内容 | 许可 |
 |----|------|------|
 | `io.github.yahocen.jacob` | 通用 COM/ActiveX 桥接（JACOB 修改分支，28 个类），与 AutoCAD 无关，可用于任何 COM 对象 | LGPL-2.1 |
-| `io.github.yahocen.acad` | AutoCAD 对象模型（180 个映射类）：Application/Document/实体/集合/事件，`EntityUtil.parse` 按 ObjectName 自动解析实体类型 | 见 LICENSE |
+| `io.github.yahocen.acad` | AutoCAD 对象模型（180 个映射类）：Application/Document/实体/集合/事件，`EntityUtil.parse` 按 ObjectName 自动解析实体类型 | Apache-2.0 |
 
 ## 构建
 
@@ -151,3 +151,16 @@ DLL 是预编译产物，随仓库提交——纯 Java 消费方不需要 MSVC�
 ## 多版本兼容
 
 整条链路是 IDispatch 晚绑定：映射类只是类型化便利包装，不编译期绑定某个 TLB。2024 生成的类可直接驱动更新版本（新版成员是旧版超集）；连接方式见「使用 → 连接指定版本」。更旧版本支持需用对应 TLB 重新生成（`extract_tlb.py` 参数化进行中）；新版独有成员可经 `Dispatch.call` 原生调用。
+
+## 许可
+
+双许可结构（详见 NOTICE）：
+
+- **`io.github.yahocen.acad` 对象模型及其余原创代码**：[Apache-2.0](LICENSE)。源码文件带 `SPDX-License-Identifier: Apache-2.0` 标识。
+- **`io.github.yahocen.jacob` COM 桥接 + jacobcom 原生库**：JACOB 修改分支，沿用 [LGPL-2.1](LICENSE-LGPL-2.1)，修改说明见 NOTICE。
+
+再分发时请保留 LICENSE 与 NOTICE（Apache-2.0 第 4 条要求）。
+
+## 致谢
+
+- [freemansoft/jacob-project](https://github.com/freemansoft/jacob-project) —— JACOB 项目，久经考验的 Java-COM 桥接库及其长期维护者。本库的 COM 桥接层 fork 自 JACOB，站在它的肩膀上才能把精力集中在 AutoCAD 对象模型上。感谢 JACOB 作者 Dan Adler 与历年贡献者。

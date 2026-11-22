@@ -1,7 +1,8 @@
+// Copyright 2026 Yahocen
+// SPDX-License-Identifier: Apache-2.0
 package io.github.yahocen.acad.document.base;
 
-import cn.hutool.core.util.ArrayUtil;
-import cn.hutool.core.util.StrUtil;
+import io.github.yahocen.acad.common.Internal;
 import io.github.yahocen.jacob.com.Dispatch;
 import io.github.yahocen.jacob.com.SafeArray;
 import io.github.yahocen.jacob.com.Variant;
@@ -125,12 +126,12 @@ public class AcadObject extends ComObject {
     @Operation(summary = "调用对象方法", description = "调用对象方法")
     public Variant call(@Parameter(description = "方法名") String methodName, @Parameter(description = "方法参数") Object... attributes) {
         if (isGenericWrapper()) {
-            if (ArrayUtil.isEmpty(attributes)) {
+            if (Internal.isEmpty(attributes)) {
                 return Dispatch.call(dispatch, methodName);
             }
             return Dispatch.callN(dispatch, methodName, attributes);
         }
-        if(ArrayUtil.isEmpty(attributes)) {
+        if(Internal.isEmpty(attributes)) {
             return Disp.call(getClass(), dispatch, methodName);
         }
         return Disp.callN(getClass(), dispatch, methodName, attributes);
@@ -309,7 +310,7 @@ public class AcadObject extends ComObject {
 
     @Override
     public String toString() {
-        return StrUtil.format("{}(Type: {}, ObjectID: {}, Handle: {})",
+        return Internal.format("{}(Type: {}, ObjectID: {}, Handle: {})",
                 this.getClass().getSimpleName(),
                 getObjectName(), getObjectId(), getHandle());
     }

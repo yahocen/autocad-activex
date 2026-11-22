@@ -1,8 +1,10 @@
+// Copyright 2026 Yahocen
+// SPDX-License-Identifier: Apache-2.0
 package io.github.yahocen.acad.document.element;
 
 import io.github.yahocen.acad.common.Disp;
 import io.github.yahocen.acad.document.manager.AcCmColor;
-import cn.hutool.core.util.ArrayUtil;
+import io.github.yahocen.acad.common.Internal;
 import io.github.yahocen.jacob.com.Dispatch;
 import io.github.yahocen.jacob.com.SafeArray;
 import io.github.yahocen.jacob.com.Variant;
@@ -293,7 +295,7 @@ public class Hatch extends AcadEntity {
      * @return 包含实体 Dispatch 的 Variant
      */
     private Variant toObjectArrayVariant(AcadEntity... entities) {
-        if (ArrayUtil.isEmpty(entities)) {
+        if (Internal.isEmpty(entities)) {
             throw new IllegalArgumentException("边界实体数组不能为空");
         }
         // AutoCAD AppendOuterLoop/AppendInnerLoop 要求 VT_DISPATCH 数组（vlax-vbObject），

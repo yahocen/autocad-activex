@@ -1,8 +1,9 @@
+// Copyright 2026 Yahocen
+// SPDX-License-Identifier: Apache-2.0
 package io.github.yahocen.acad.document;
 
 import io.github.yahocen.acad.common.Disp;
-import cn.hutool.core.thread.ThreadUtil;
-import cn.hutool.core.util.ReflectUtil;
+import io.github.yahocen.acad.common.Internal;
 import io.github.yahocen.jacob.com.ComFailException;
 import io.github.yahocen.jacob.com.Dispatch;
 import io.github.yahocen.jacob.com.Variant;
@@ -56,7 +57,7 @@ public class Utility extends ComObject {
                 if(retry == 0) {
                     throw e;
                 }
-                ThreadUtil.sleep(1000);
+                Internal.sleep(1000);
             }
         }
         // 将返回的 Variant 类型转换为 Point 对象
@@ -132,7 +133,7 @@ public class Utility extends ComObject {
         @Operation(summary = "将选中的对象转换为指定类型的对象", description = "将选中的对象转换为指定类型的对象")
         @Parameter(name = "clazz", description = "指定类型的类")
         public <T extends AcadObject> T toEntityObject (Class<T> clazz) {
-            return ReflectUtil.newInstance(clazz, document.handleToObject(handle));
+            return Internal.newInstance(clazz, document.handleToObject(handle));
         }
 
         @Operation(summary = "将选中的对象转换为 AcadEntity", description = "将选中的对象转换为 AcadEntity")

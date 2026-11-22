@@ -1,8 +1,8 @@
+// Copyright 2026 Yahocen
+// SPDX-License-Identifier: Apache-2.0
 package io.github.yahocen.acad.document;
 
-import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.thread.ThreadUtil;
-import cn.hutool.core.util.StrUtil;
+import io.github.yahocen.acad.common.Internal;
 import io.github.yahocen.jacob.com.ComFailException;
 import io.github.yahocen.jacob.com.Dispatch;
 import io.github.yahocen.jacob.com.Variant;
@@ -57,7 +57,7 @@ public class Document extends ComObject {
     @Parameter(name = "saveChanges", description = "是否保存")
     @Parameter(name = "fileName", description = "保存的文件名（可选）")
     public void close(boolean saveChanges, String fileName) {
-        if (saveChanges && StrUtil.isNotBlank(fileName)) {
+        if (saveChanges && (fileName != null && !fileName.isBlank())) {
             Disp.call(getClass(), dispatch,"Close", new Variant(true), new Variant(fileName));
         } else {
             Disp.call(getClass(), dispatch,"Close", new Variant(saveChanges));
@@ -119,7 +119,7 @@ public class Document extends ComObject {
                 if(retry == 0) {
                     throw e;
                 }
-                ThreadUtil.sleep(1000);
+                Internal.sleep(1000);
             }
         }
     }
@@ -278,7 +278,9 @@ public class Document extends ComObject {
     @Operation(summary = "加载 lisp 文件", description = "加载 lisp 文件")
     @Parameter(name = "lispFile", description = "lisp 文件")
     public void loadLispFile(File lispFile) {
-        this.sendCommand(StrUtil.format("(load \"{}\") ",  FileUtil.normalize(lispFile.getAbsolutePath())));
+        // LISP load 用正斜杠路径；normalize 消解冗余分隔符与 . / ..
+        String path = java.nio.file.Path.of(lispFile.getAbsolutePath()).normalize().toString().replace('\\', '/');
+        this.sendCommand(Internal.format("(load \"{}\") ", path));
     }
 
     /**

@@ -1,7 +1,8 @@
+// Copyright 2026 Yahocen
+// SPDX-License-Identifier: Apache-2.0
 package io.github.yahocen.acad.document.manager;
 
 import io.github.yahocen.acad.common.Disp;
-import cn.hutool.core.util.StrUtil;
 import io.github.yahocen.jacob.com.ComFailException;
 import io.github.yahocen.jacob.com.Dispatch;
 import io.github.yahocen.jacob.com.Variant;
@@ -54,7 +55,7 @@ public class Layers extends ComCollection<Layer> {
         try {
             return item(layerName);
         }catch (ComFailException e) {
-            if(StrUtil.contains(e.getMessage(), "未找到主键")) {
+            if((e.getMessage() != null && e.getMessage().contains("未找到主键"))) {
                 return add(layerName);
             }
             throw e;
