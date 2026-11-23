@@ -95,4 +95,59 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!-- 发布到 Maven Central（Sonatype Central Portal）：mvn clean deploy -P release
+             autoPublish=false：上传并通过校验后停在 Portal 的 VALIDATED 状态，
+             需登录 https://central.sonatype.com/publishing 人工确认后点 Publish -->
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <!-- Central 要求 javadoc jar -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>3.11.2</version>
+                        <configuration>
+                            <doclint>none</doclint>
+                            <charset>UTF-8</charset>
+                            <encoding>UTF-8</encoding>
+                            <docencoding>UTF-8</docencoding>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals><goal>jar</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- Central 要求所有构件 GPG 签名；passphrase 在 ~/.m2/settings.xml 的 gpg-signing profile -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.2.7</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals><goal>sign</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- 上传到 Central Portal，server id 对应 settings.xml 中的 <server><id>central</id> -->
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>0.8.0</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <autoPublish>false</autoPublish>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
