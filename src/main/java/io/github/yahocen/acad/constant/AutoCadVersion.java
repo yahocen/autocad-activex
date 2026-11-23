@@ -8,7 +8,7 @@ import lombok.Getter;
 /**
  * @author Yahocen
  * <br>
- * <a href="https://help.autodesk.com/view/OARX/2024/CHS/?guid=GUID-FF023966-A01D-4B64-8957-7C0F02BF8162">About Migrating Automation Projects (ActiveX)</a>
+ * <a href="https://help.autodesk.com/view/OARX/2027/CHS/?guid=GUID-FF023966-A01D-4B64-8957-7C0F02BF8162">About Migrating Automation Projects (ActiveX)</a>
  */
 @AllArgsConstructor
 @Getter
@@ -18,10 +18,11 @@ public enum AutoCadVersion {
 
     // 2000-2002 (R15系列)
     AUTOCAD_2000("AutoCAD 2000", "AutoCAD.Application.15"),
-    AUTOCAD_2002("AutoCAD 2002", "AutoCAD.Application.15.1"),
+    AUTOCAD_2000I("AutoCAD 2000i", "AutoCAD.Application.15.1"),
+    AUTOCAD_2002("AutoCAD 2002", "AutoCAD.Application.15.2"),
 
     // 2004-2006 (R16系列)
-    AUTOCAD_2004("AutoCAD 2004", "AutoCAD.Application.16.0"),
+    AUTOCAD_2004("AutoCAD 2004", "AutoCAD.Application.16"),
     AUTOCAD_2005("AutoCAD 2005", "AutoCAD.Application.16.1"),
     AUTOCAD_2006("AutoCAD 2006", "AutoCAD.Application.16.2"),
 
@@ -54,6 +55,13 @@ public enum AutoCadVersion {
     AUTOCAD_2022("AutoCAD 2022", "AutoCAD.Application.24.1"),
     AUTOCAD_2023("AutoCAD 2023", "AutoCAD.Application.24.2"),
     AUTOCAD_2024("AutoCAD 2024", "AutoCAD.Application.24.3"),
+
+    // 2025-2026 (R25系列)
+    AUTOCAD_2025("AutoCAD 2025", "AutoCAD.Application.25"),
+    AUTOCAD_2026("AutoCAD 2026", "AutoCAD.Application.25.1"),
+
+    // 2027 (R26)
+    AUTOCAD_2027("AutoCAD 2027", "AutoCAD.Application.26"),
 
     ;
 
