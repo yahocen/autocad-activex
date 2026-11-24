@@ -64,23 +64,19 @@ public class AcCmColor extends ComObject {
     }
 
     public Variant setNames(Variant colorName, Variant bookName) {
-        Variant result = Disp.call(getClass(), dispatch, "SetNames", colorName, bookName);
-        return result;
+        return Disp.call(getClass(), dispatch, "SetNames", colorName, bookName);
     }
 
     public Variant delete() {
-        Variant result = Disp.call(getClass(), dispatch, "Delete");
-        return result;
+        return Disp.call(getClass(), dispatch, "Delete");
     }
 
     public Variant setRGB(Variant red, Variant green, Variant blue) {
-        Variant result = Disp.call(getClass(), dispatch, "SetRGB", red, green, blue);
-        return result;
+        return Disp.call(getClass(), dispatch, "SetRGB", red, green, blue);
     }
 
     public Variant setColorBookColor(Variant bookName, Variant colorName) {
-        Variant result = Disp.call(getClass(), dispatch, "SetColorBookColor", bookName, colorName);
-        return result;
+        return Disp.call(getClass(), dispatch, "SetColorBookColor", bookName, colorName);
     }
 
 }

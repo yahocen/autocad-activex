@@ -4,9 +4,6 @@ package io.github.yahocen.acad.document.element;
 
 import io.github.yahocen.jacob.com.Dispatch;
 import io.github.yahocen.jacob.com.Variant;
-import io.github.yahocen.acad.common.AcadEntityName;
-import io.github.yahocen.acad.document.element.BlockReference;
-import io.github.yahocen.acad.document.base.AcadEntity;
 
 /**
  * ExternalReference - AutoCAD ExternalReference 实体

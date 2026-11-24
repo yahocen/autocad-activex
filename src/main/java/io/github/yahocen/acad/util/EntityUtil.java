@@ -22,7 +22,6 @@ import java.util.Map;
 /**
  * @author Yahocen
  */
-@SuppressWarnings("unchecked")
 @Slf4j
 public class EntityUtil {
 

@@ -8,6 +8,7 @@ import io.github.yahocen.acad.constant.LineDirection;
 import io.github.yahocen.acad.document.base.Point;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -598,11 +599,7 @@ public class PointUtil {
         }
 
         // 返回凸包上的点（去除重复的最后一个点）
-        List<Point> result = new ArrayList<>();
-        for (int i = 0; i < k - 1; i++) {
-            result.add(hull[i]);
-        }
-        return result;
+        return new ArrayList<>(Arrays.asList(hull).subList(0, k - 1));
     }
 
     /**

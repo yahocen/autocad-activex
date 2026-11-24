@@ -91,16 +91,10 @@ public abstract class InvocationProxy {
 			JacobObject.debug("InvocationProxy: setting target "
 					+ pTargetObject);
 		}
-		if (pTargetObject != null) {
-			// JNI code apparently bypasses this check and could operate against
-			// protected classes. This seems like a security issue...
-			// maybe it was because JNI code isn't in a package?
-			if (!java.lang.reflect.Modifier.isPublic(pTargetObject.getClass()
-					.getModifiers())) {
-				throw new IllegalArgumentException(
-						"InvocationProxy only public classes can receive event notifications");
-			}
-		}
+		// 不再要求目标类必须 public：事件回调方法本身是 public 即可，
+		// 匿名内部类/包私有类（如 new ApplicationEventSink(){...}）同样可接收事件。
+		// 反射调用侧（InvocationProxyAllVariants）对方法 setAccessible(true) 以绕过
+		// 非 public 声明类的访问检查；JNI 层本就不受此限制。
 		mTargetObject = pTargetObject;
 	}
 

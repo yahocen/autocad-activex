@@ -63,6 +63,13 @@
             <version>${lombok.version}</version>
             <scope>provided</scope>
         </dependency>
+        <!-- 多版本 AutoCAD 集成测试：仅测试作用域，不进入运行时依赖面 -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.11.4</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -92,6 +99,13 @@
                         <goals><goal>jar-no-fork</goal></goals>
                     </execution>
                 </executions>
+            </plugin>
+            <!-- JUnit 5 平台支持；多版本 AutoCAD 集成测试默认跑本机所有已装版本，
+                 可用 -Dacad.versions=24.3,25 过滤 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
             </plugin>
         </plugins>
     </build>

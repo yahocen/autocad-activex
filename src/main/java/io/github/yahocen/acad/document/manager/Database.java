@@ -120,18 +120,15 @@ public class Database extends ComObject {
     }
 
     public Variant copyObjects(Variant objects, Variant owner, Variant idPairs) {
-        Variant result = Disp.call(getClass(), dispatch, "CopyObjects", objects, owner, idPairs);
-        return result;
+        return Disp.call(getClass(), dispatch, "CopyObjects", objects, owner, idPairs);
     }
 
     public Variant handleToObject(Variant handle) {
-        Variant result = Disp.call(getClass(), dispatch, "HandleToObject", handle);
-        return result;
+        return Disp.call(getClass(), dispatch, "HandleToObject", handle);
     }
 
     public Variant objectIdToObject(int objectID) {
-        Variant result = Disp.call(getClass(), dispatch, "ObjectIdToObject", objectID);
-        return result;
+        return Disp.call(getClass(), dispatch, "ObjectIdToObject", objectID);
     }
 
 }

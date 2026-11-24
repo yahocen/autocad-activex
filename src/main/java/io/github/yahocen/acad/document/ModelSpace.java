@@ -17,6 +17,7 @@ import io.github.yahocen.acad.document.base.Point;
 import io.github.yahocen.acad.document.element.*;
 import io.github.yahocen.acad.util.EntityUtil;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -174,18 +175,21 @@ public class ModelSpace extends ComCollection<AcadEntity> {
     }
 
     /**
-     * 在模型空间中添加一个矩形盒
-     * @param firstCorner 第一个角点坐标
-     * @param secondCorner 第二个角点坐标
-     * @param height 矩形盒的高度
+     * 在模型空间中添加一个长方体
+     * @param origin 底面第一个角点坐标（与 WCS 对齐）
+     * @param length X 方向长度
+     * @param width Y 方向宽度
+     * @param height Z 方向高度
      * @return 新创建的 Box 对象
      */
-    @Operation(summary = "在模型空间中添加一个矩形盒", description = "在模型空间中添加一个矩形盒")
-    @Parameter(name = "firstCorner", description = "第一个角点坐标")
-    @Parameter(name = "secondCorner", description = "第二个角点坐标")
-    @Parameter(name = "height", description = "矩形盒的高度")
-    public Box addBox(Point firstCorner, Point secondCorner, double height) {
-        return new Box(Disp.call(getClass(), dispatch,"AddBox", firstCorner.toVariant(), secondCorner.toVariant(), new Variant(height)).toDispatch());
+    @Operation(summary = "在模型空间中添加一个长方体", description = "在模型空间中添加一个长方体（Origin + 长宽高，与 WCS 对齐）")
+    @Parameter(name = "origin", description = "底面第一个角点坐标（与 WCS 对齐）")
+    @Parameter(name = "length", description = "X 方向长度")
+    @Parameter(name = "width", description = "Y 方向宽度")
+    @Parameter(name = "height", description = "Z 方向高度")
+    public Box addBox(Point origin, double length, double width, double height) {
+        return new Box(Disp.call(getClass(), dispatch,"AddBox",
+                origin.toVariant(), new Variant(length), new Variant(width), new Variant(height)).toDispatch());
     }
 
     /**
@@ -221,16 +225,17 @@ public class ModelSpace extends ComCollection<AcadEntity> {
     /**
      * 在模型空间中添加一个椭圆
      * @param center 椭圆中心坐标
-     * @param majorAxis 主轴长度
+     * @param majorAxis 主轴向量（从中心指向主轴端点的 3D 向量，如 (20,0,0)）
      * @param ratio 长轴与短轴的比例
      * @return 新创建的 Ellipse 对象
      */
     @Operation(summary = "在模型空间中添加一个椭圆", description = "在模型空间中添加一个椭圆")
     @Parameter(name = "center", description = "椭圆中心坐标")
-    @Parameter(name = "majorAxis", description = "主轴长度")
+    @Parameter(name = "majorAxis", description = "主轴向量（从中心指向主轴端点的 3D 向量）")
     @Parameter(name = "ratio", description = "长轴与短轴的比例")
-    public Ellipse addEllipse(Point center, double majorAxis, double ratio) {
-        return new Ellipse(Disp.call(getClass(), dispatch,"AddEllipse", center.toVariant(), new Variant(majorAxis), new Variant(ratio)).toDispatch());
+    public Ellipse addEllipse(Point center, Point majorAxis, double ratio) {
+        return new Ellipse(Disp.call(getClass(), dispatch,"AddEllipse",
+                center.toVariant(), majorAxis.toVariant(), new Variant(ratio)).toDispatch());
     }
 
     /**
@@ -285,18 +290,32 @@ public class ModelSpace extends ComCollection<AcadEntity> {
     }
 
     /**
-     * 在模型空间中添加一条样条曲线
-     * @param points 样条曲线的控制点坐标数组
+     * 在模型空间中添加一条样条曲线（起止切向量取零向量）
+     * @param points 样条曲线的控制点坐标数组（至少 2 个）
      * @return 新创建的 Spline 对象
      */
     @Operation(summary = "在模型空间中添加一条样条曲线", description = "在模型空间中添加一条样条曲线")
     @Parameter(name = "points", description = "样条曲线的控制点坐标数组")
     public Spline addSpline(Point... points) {
-        SafeArray safeArray = new SafeArray(Variant.VariantVariant, points.length);
-        for (int i = 0; i < points.length; i++) {
-            safeArray.setVariant(i, points[i].toVariant());
-        }
-        return new Spline(Disp.call(getClass(), dispatch,"AddSpline", new Variant(safeArray)).toDispatch());
+        return addSpline(points, Point.ORIGIN, Point.ORIGIN);
+    }
+
+    /**
+     * 在模型空间中添加一条样条曲线
+     * @param points 样条曲线的控制点坐标数组（至少 2 个）
+     * @param startTangent 起点切向量
+     * @param endTangent 终点切向量
+     * @return 新创建的 Spline 对象
+     */
+    @Operation(summary = "在模型空间中添加一条样条曲线", description = "在模型空间中添加一条样条曲线（带起止切向量）")
+    @Parameter(name = "points", description = "样条曲线的控制点坐标数组")
+    @Parameter(name = "startTangent", description = "起点切向量")
+    @Parameter(name = "endTangent", description = "终点切向量")
+    public Spline addSpline(Point[] points, Point startTangent, Point endTangent) {
+        // AddSpline(PointsArray, StartTangent, EndTangent) 三参必传；
+        // 控制点用平铺 double 数组（与 Add3DPoly 同形态），切向量用 3D 向量
+        return new Spline(Disp.call(getClass(), dispatch, "AddSpline",
+                points3DArray(points), startTangent.toVariant(), endTangent.toVariant()).toDispatch());
     }
 
     /**
@@ -553,6 +572,328 @@ public class ModelSpace extends ComCollection<AcadEntity> {
             validateGradientName(patternName);
         }
         return new Hatch(Disp.call(getClass(), dispatch,"AddHatch", new Variant(patternType), patternName, new Variant(associativity), new Variant(hatchObjectType)).toDispatch());
+    }
+
+    /**
+     * 在模型空间中添加一条构造线（无限长直线）
+     * @param point1 基点坐标
+     * @param point2 方向上的另一个点坐标
+     * @return 新创建的 XLine 对象
+     */
+    @Operation(summary = "添加一条构造线", description = "在模型空间中添加一条构造线（无限长直线）")
+    @Parameter(name = "point1", description = "基点坐标")
+    @Parameter(name = "point2", description = "方向上的另一个点坐标")
+    public XLine addXLine(Point point1, Point point2) {
+        return new XLine(Disp.call(getClass(), dispatch, "AddXline", point1.toVariant(), point2.toVariant()).toDispatch());
+    }
+
+    /**
+     * 在模型空间中添加一条二维实心填充四边形（Trace 实线带宽实体）
+     * @param points 四个顶点坐标
+     * @return 新创建的 Trace 对象
+     */
+    @Operation(summary = "添加二维填充实体", description = "添加一条二维实心填充四边形（Trace）")
+    @Parameter(name = "points", description = "四个顶点坐标")
+    public Trace addTrace(Point... points) {
+        return new Trace(Disp.call(getClass(), dispatch, "AddTrace", points3DArray(points)).toDispatch());
+    }
+
+    /**
+     * 在模型空间中添加一个二维实心多边形（Solid 实体）
+     * @param point1 第一个顶点
+     * @param point2 第二个顶点
+     * @param point3 第三个顶点
+     * @param point4 第四个顶点
+     * @return 新创建的 Solid2D 对象
+     */
+    @Operation(summary = "添加二维实心多边形", description = "添加一个二维实心多边形（Solid）")
+    public Solid2D addSolid2D(Point point1, Point point2, Point point3, Point point4) {
+        return new Solid2D(Disp.call(getClass(), dispatch, "AddSolid",
+                point1.toVariant(), point2.toVariant(), point3.toVariant(), point4.toVariant()).toDispatch());
+    }
+
+    /**
+     * 在模型空间中添加形（Shape，需形名在已加载的 SHX 形文件中存在）
+     * @param name 形名称
+     * @param insertionPoint 插入点
+     * @param scaleFactor 缩放比例
+     * @param rotationAngle 旋转角度（弧度）
+     * @return 新创建的 Shape 对象
+     */
+    @Operation(summary = "添加形", description = "添加一个形（Shape）实体")
+    public Shape addShape(String name, Point insertionPoint, double scaleFactor, double rotationAngle) {
+        return new Shape(Disp.call(getClass(), dispatch, "AddShape",
+                name, insertionPoint.toVariant(), new Variant(scaleFactor), new Variant(rotationAngle)).toDispatch());
+    }
+
+    /**
+     * 在模型空间中添加一条多重平行线（MLine）
+     * @param points 顶点坐标数组
+     * @return 新创建的 MLine 对象
+     */
+    @Operation(summary = "添加多重平行线", description = "添加一条多重平行线（MLine）")
+    public MLine addMLine(Point... points) {
+        return new MLine(Disp.call(getClass(), dispatch, "AddMLine", points3DArray(points)).toDispatch());
+    }
+
+    /**
+     * 在模型空间中添加一个三维多边形网格（3DMesh）
+     * @param m M 方向顶点数
+     * @param n N 方向顶点数
+     * @param points m*n 个顶点坐标（按行填充）
+     * @return 新创建的 PolygonMesh 对象
+     */
+    @Operation(summary = "添加三维多边形网格", description = "添加一个三维多边形网格（3DMesh）")
+    public PolygonMesh add3DMesh(int m, int n, Point... points) {
+        return new PolygonMesh(Disp.call(getClass(), dispatch, "Add3DMesh",
+                new Variant(m), new Variant(n), points3DArray(points)).toDispatch());
+    }
+
+    /**
+     * 在模型空间中添加一个多面网格（PolyfaceMesh）
+     * @param vertices 顶点坐标数组
+     * @param faces 每个面的顶点索引列表（索引从 1 开始，负值表示该边不可见）
+     * @return 新创建的 PolyfaceMesh 对象
+     */
+    @Operation(summary = "添加多面网格", description = "添加一个多面网格（PolyfaceMesh）")
+    public PolyfaceMesh addPolyfaceMesh(List<Point> vertices, List<int[]> faces) {
+        // VertexList：平铺 double 数组（3D 坐标）；FaceList：VT_I2 平铺 int 数组（VBA Integer），
+        // 各面的顶点索引依次排列，不加 0 终止符（2018–2026 五版本实测 VT_I2 无终止为唯一可用编码，
+        // VT_I4 / VT_VARIANT 嵌套 / 带 0 终止均报"特性 Faces 的值无效"）
+        SafeArray vertexArray = new SafeArray(Variant.VariantDouble, vertices.size() * 3);
+        for (int i = 0; i < vertices.size(); i++) {
+            vertexArray.setDouble(i * 3, vertices.get(i).getX());
+            vertexArray.setDouble(i * 3 + 1, vertices.get(i).getY());
+            vertexArray.setDouble(i * 3 + 2, vertices.get(i).getZ());
+        }
+        int total = faces.stream().mapToInt(f -> f.length).sum();
+        SafeArray faceArray = new SafeArray(Variant.VariantShort, total);
+        int idx = 0;
+        for (int[] face : faces) {
+            for (int v : face) {
+                faceArray.setShort(idx++, (short) v);
+            }
+        }
+        return new PolyfaceMesh(Disp.call(getClass(), dispatch, "AddPolyfaceMesh",
+                new Variant(vertexArray), new Variant(faceArray)).toDispatch());
+    }
+
+    /**
+     * 在模型空间中添加一个引线标注
+     * @param points 引线顶点坐标数组
+     * @param annotation 关联的注释实体（可为 null 表示无注释）
+     * @param type 引线类型（AcLeaderType：0=直线，1=样条曲线）
+     * @return 新创建的 Leader 对象
+     */
+    @Operation(summary = "添加引线标注", description = "添加一个引线标注（Leader）")
+    public Leader addLeader(Point[] points, AcadEntity annotation, int type) {
+        // Annotation 为 byref Dispatch：传实体或 VBA 的 Nothing（VT_DISPATCH 空指针），
+        // VT_EMPTY 会报"类型不匹配"
+        Variant annotationVariant;
+        if (annotation == null) {
+            annotationVariant = new Variant();
+            annotationVariant.putNothing();
+        } else {
+            annotationVariant = new Variant(annotation.getDispatch());
+        }
+        return new Leader(Disp.call(getClass(), dispatch, "AddLeader",
+                points3DArray(points), annotationVariant, new Variant(type)).toDispatch());
+    }
+
+    /**
+     * 在模型空间中添加一个多重引线标注（MLeader）
+     * @param points 引线顶点坐标数组
+     * @return 新创建的 MLeader 对象
+     */
+    @Operation(summary = "添加多重引线", description = "添加一个多重引线标注（MLeader）")
+    public MLeader addMLeader(Point[] points) {
+        return new MLeader(Disp.call(getClass(), dispatch, "AddMLeader", points3DArray(points), new Variant(0)).toDispatch());
+    }
+
+    /**
+     * 在模型空间中添加一个表格
+     * @param insertionPoint 插入点
+     * @param numRows 行数
+     * @param numColumns 列数
+     * @param rowHeight 行高
+     * @param colWidth 列宽
+     * @return 新创建的 Table 对象
+     */
+    @Operation(summary = "添加表格", description = "添加一个表格（Table）")
+    public Table addTable(Point insertionPoint, int numRows, int numColumns, double rowHeight, double colWidth) {
+        return new Table(Disp.call(getClass(), dispatch, "AddTable",
+                insertionPoint.toVariant(), new Variant(numRows), new Variant(numColumns),
+                new Variant(rowHeight), new Variant(colWidth)).toDispatch());
+    }
+
+    /**
+     * 在模型空间中添加一个角度尺寸标注（三点法，Dim3PointAngular）
+     * @param angleVertex 角度顶点
+     * @param firstEndPoint 第一条边端点
+     * @param secondEndPoint 第二条边端点
+     * @param textPoint 文本位置
+     * @return 新创建的 Dim3PointAngular 对象
+     */
+    @Operation(summary = "添加三点角度标注", description = "添加一个三点法角度尺寸标注")
+    public Dim3PointAngular addDim3PointAngular(Point angleVertex, Point firstEndPoint, Point secondEndPoint, Point textPoint) {
+        return new Dim3PointAngular(Disp.call(getClass(), dispatch, "AddDim3PointAngular",
+                angleVertex.toVariant(), firstEndPoint.toVariant(), secondEndPoint.toVariant(), textPoint.toVariant()).toDispatch());
+    }
+
+    /**
+     * 在模型空间中添加一个弧长尺寸标注（DimArcLength）
+     * @param arcCenter 弧心
+     * @param firstEndPoint 弧起点
+     * @param secondEndPoint 弧终点
+     * @param arcPoint 弧上参考点
+     * @return 新创建的 DimArcLength 对象
+     */
+    @Operation(summary = "添加弧长标注", description = "添加一个弧长尺寸标注")
+    public DimArcLength addDimArcLength(Point arcCenter, Point firstEndPoint, Point secondEndPoint, Point arcPoint) {
+        return new DimArcLength(Disp.call(getClass(), dispatch, "AddDimArc",
+                arcCenter.toVariant(), firstEndPoint.toVariant(), secondEndPoint.toVariant(), arcPoint.toVariant()).toDispatch());
+    }
+
+    /**
+     * 在模型空间中添加一个折弯半径尺寸标注（DimRadialLarge）
+     * @param center 圆心
+     * @param chordPoint 引出点
+     * @param overrideCenter 折弯中心替代点
+     * @param jogPoint 折弯点
+     * @param jogAngle 折弯角度（弧度）
+     * @return 新创建的 DimRadialLarge 对象
+     */
+    @Operation(summary = "添加折弯半径标注", description = "添加一个折弯半径尺寸标注")
+    public DimRadialLarge addDimRadialLarge(Point center, Point chordPoint, Point overrideCenter, Point jogPoint, double jogAngle) {
+        return new DimRadialLarge(Disp.call(getClass(), dispatch, "AddDimRadialLarge",
+                center.toVariant(), chordPoint.toVariant(), overrideCenter.toVariant(),
+                jogPoint.toVariant(), new Variant(jogAngle)).toDispatch());
+    }
+
+    /**
+     * 在模型空间中添加一个截面对象（Section）
+     * @param fromPoint 起点
+     * @param toPoint 终点
+     * @param planeVector 截面法向量
+     * @return 新创建的 Section 对象
+     */
+    @Operation(summary = "添加截面对象", description = "添加一个截面对象（Section）")
+    public Section addSection(Point fromPoint, Point toPoint, Point planeVector) {
+        return new Section(Disp.call(getClass(), dispatch, "AddSection",
+                fromPoint.toVariant(), toPoint.toVariant(), planeVector.toVariant()).toDispatch());
+    }
+
+    /**
+     * 在模型空间中添加一个楔体（Wedge）
+     * @param center 底面中心
+     * @param length 长度
+     * @param width 宽度
+     * @param height 高度
+     * @return 新创建的 Solid3D 对象
+     */
+    @Operation(summary = "添加楔体", description = "添加一个楔体（Wedge）")
+    public Solid3D addWedge(Point center, double length, double width, double height) {
+        return new Solid3D(Disp.call(getClass(), dispatch, "AddWedge",
+                center.toVariant(), new Variant(length), new Variant(width), new Variant(height)).toDispatch());
+    }
+
+    /**
+     * 在模型空间中添加一个椭圆锥（EllipticalCone）
+     * @param center 底面中心
+     * @param majorRadius 长半轴
+     * @param minorRadius 短半轴
+     * @param height 高度
+     * @return 新创建的 Solid3D 对象
+     */
+    @Operation(summary = "添加椭圆锥", description = "添加一个椭圆锥（EllipticalCone）")
+    public Solid3D addEllipticalCone(Point center, double majorRadius, double minorRadius, double height) {
+        return new Solid3D(Disp.call(getClass(), dispatch, "AddEllipticalCone",
+                center.toVariant(), new Variant(majorRadius), new Variant(minorRadius), new Variant(height)).toDispatch());
+    }
+
+    /**
+     * 在模型空间中添加一个椭圆柱（EllipticalCylinder）
+     * @param center 底面中心
+     * @param majorRadius 长半轴
+     * @param minorRadius 短半轴
+     * @param height 高度
+     * @return 新创建的 Solid3D 对象
+     */
+    @Operation(summary = "添加椭圆柱", description = "添加一个椭圆柱（EllipticalCylinder）")
+    public Solid3D addEllipticalCylinder(Point center, double majorRadius, double minorRadius, double height) {
+        return new Solid3D(Disp.call(getClass(), dispatch, "AddEllipticalCylinder",
+                center.toVariant(), new Variant(majorRadius), new Variant(minorRadius), new Variant(height)).toDispatch());
+    }
+
+    /**
+     * 由一组封闭实体生成面域（Region）
+     * @param entities 封闭实体（圆、闭合多段线等）
+     * @return 生成的 Region 列表（AddRegion 返回数组）
+     */
+    @Operation(summary = "生成面域", description = "由一组封闭实体生成面域（Region）")
+    public List<Region> addRegion(AcadEntity... entities) {
+        // ObjectList 须为 VT_DISPATCH 数组（同 AppendOuterLoop 的 toObjectArrayVariant），
+        // VT_VARIANT 嵌套数组会让 AutoCAD 崩溃（2024 实测 RPC 服务器不可用）
+        SafeArray safeArray = new SafeArray(Variant.VariantDispatch, entities.length);
+        for (int i = 0; i < entities.length; i++) {
+            safeArray.setVariant(i, new Variant(entities[i].getDispatch()));
+        }
+        Variant result = Disp.call(getClass(), dispatch, "AddRegion", new Variant(safeArray));
+        List<Region> regions = new ArrayList<>();
+        for (Variant v : result.toSafeArray().toVariantArray()) {
+            if (v.getvt() == Variant.VariantDispatch) {
+                regions.add(new Region(v.toDispatch()));
+            }
+        }
+        return regions;
+    }
+
+    /**
+     * 在模型空间中插入块参照
+     * @param insertionPoint 插入点
+     * @param name 块名
+     * @param xscale X 方向缩放
+     * @param yscale Y 方向缩放
+     * @param zscale Z 方向缩放
+     * @param rotation 旋转角度（弧度）
+     * @return 新创建的 BlockReference 对象
+     */
+    @Operation(summary = "插入块参照", description = "在模型空间中插入块参照（InsertBlock）")
+    public BlockReference insertBlock(Point insertionPoint, String name, double xscale, double yscale, double zscale, double rotation) {
+        return new BlockReference(Disp.call(getClass(), dispatch, "InsertBlock",
+                insertionPoint.toVariant(), name, new Variant(xscale), new Variant(yscale),
+                new Variant(zscale), new Variant(rotation), new Variant("")).toDispatch());
+    }
+
+    /**
+     * 在模型空间中插入块阵列（MInsertBlock）
+     * @param insertionPoint 插入点
+     * @param name 块名
+     * @param numRows 行数
+     * @param numColumns 列数
+     * @param rowSpacing 行间距
+     * @param columnSpacing 列间距
+     * @return 新创建的 MInsertBlock 对象
+     */
+    @Operation(summary = "插入块阵列", description = "在模型空间中插入块阵列（MInsertBlock）")
+    public MInsertBlock addMInsertBlock(Point insertionPoint, String name, int numRows, int numColumns, double rowSpacing, double columnSpacing) {
+        return new MInsertBlock(Disp.call(getClass(), dispatch, "AddMInsertBlock",
+                insertionPoint.toVariant(), name, new Variant(1.0), new Variant(1.0), new Variant(1.0),
+                new Variant(0.0), new Variant(numRows), new Variant(numColumns),
+                new Variant(rowSpacing), new Variant(columnSpacing), new Variant("")).toDispatch());
+    }
+
+    /**
+     * 把多个三维点打包成 double 数组 Variant（Add3DPoly / AddTrace / AddMLine / Add3DMesh 等使用）。
+     */
+    private static Variant points3DArray(Point... points) {
+        SafeArray safeArray = new SafeArray(Variant.VariantDouble, points.length * 3);
+        for (int i = 0; i < points.length; i++) {
+            safeArray.setDouble(i * 3, points[i].getX());
+            safeArray.setDouble(i * 3 + 1, points[i].getY());
+            safeArray.setDouble(i * 3 + 2, points[i].getZ());
+        }
+        return new Variant(safeArray);
     }
 
 }

@@ -42,13 +42,26 @@ public abstract class ComObject {
     }
 
     /**
-     * 添加事件监听器
-     * 
-     * @param acadEventSink 事件接收器
+     * 添加事件监听器，返回连接点句柄以便后续解绑。
+     * <p>
+     * 经版本无关 ProgID（{@code AutoCAD.Application}）定位类型库；原生层会按源对象自身
+     * 的接口 GUID 匹配其 coclass 的默认事件接口，因此 Application / Document / Object
+     * 各自的事件都能正确绑定（不依赖对象实现 IProvideClassInfo）。
+     * </p>
+     * <p>
+     * 事件回调在 COM STA 线程上送达：须在专用 STA 线程（{@code io.github.yahocen.jacob.com.STA}
+     * 子类，OnInit 里建对象并绑定、随后跑消息泵）上持有对象，否则事件不会触发。
+     * 不再需要监听时调用返回句柄的 {@link DispatchEvents#safeRelease()} 解除连接点，
+     * 避免监听器累积泄漏。
+     * </p>
+     *
+     * @param acadEventSink 事件接收器（ApplicationEventSink / DocumentEventSink / ObjectEventSink，
+     *                      可用匿名子类）
      * @param <T> 事件接收器类型
+     * @return 连接点句柄，调用 {@code safeRelease()} 可解绑
      */
-    public <T extends EventSink> void addEventListener(T acadEventSink) {
-        new DispatchEvents(dispatch, acadEventSink, AUTOCAD.getProgId());
+    public <T extends EventSink> DispatchEvents addEventListener(T acadEventSink) {
+        return new DispatchEvents(dispatch, acadEventSink, AUTOCAD.getProgId());
     }
 
     /**

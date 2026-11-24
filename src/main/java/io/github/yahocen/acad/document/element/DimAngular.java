@@ -6,8 +6,6 @@ import io.github.yahocen.jacob.com.Dispatch;
 import io.github.yahocen.jacob.com.Variant;
 import io.github.yahocen.acad.document.base.Point;
 import io.github.yahocen.acad.common.AcadEntityName;
-import io.github.yahocen.acad.document.element.Dimension;
-import io.github.yahocen.acad.document.base.AcadEntity;
 
 /**
  * DimAngular - AutoCAD DimAngular 实体

@@ -47,20 +47,27 @@ DLL 加载是自动的：首次触碰 COM 类时从 jar 资源解压 jacobcom.dl
 
 ### 连接指定版本
 
-`connectToActiveAcad()` / `createNewAcad()` 当前使用 2024 的 ProgID。其他版本用 `AutoCadVersion` 枚举自行构造：
+无参的 `connectToActiveAcad()` / `createNewAcad()` 使用版本无关 ProgID `AutoCAD.Application`，经注册表 CurVer 指向**本机最新安装版本**。多版本并存或需要确定性时，用 `AutoCadVersion` 枚举显式指定：
 
 ```java
-import io.github.yahocen.jacob.activeX.ActiveXComponent;
 import io.github.yahocen.acad.constant.AutoCadVersion;
 
-// 版本无关 ProgID（AutoCAD.Application）：单版本安装时最省事
-var comp = ActiveXComponent.connectToActiveInstance(AutoCadVersion.AUTOCAD.getProgId());
-// 多版本并存时指定版本，如 AutoCadVersion.AUTOCAD_2020.getProgId()
-if (comp == null) throw new IllegalStateException("AutoCAD 未运行");
-Application acad = new Application(comp);
+// 连接指定版本的运行实例（GetActiveObject 按该版本 ProgID 的 CLSID 匹配）
+Application acad = Application.connectToActiveAcad(AutoCadVersion.AUTOCAD_2020);
+
+// 启动指定版本的新实例
+Application acad2 = Application.createNewAcad(AutoCadVersion.AUTOCAD_2024, true);
+
+// 连接本机任意一个正在运行的实例（按已装版本从新到老逐个尝试）
+Application any = Application.connectToAnyActiveAcad();
+
+// 探测本机实际可启动的版本（过滤卸载残留的孤儿 ProgID）
+var installed = AutoCadVersion.detectInstalled();
 ```
 
-映射类是晚绑定包装，2024 生成的类可直接驱动更新版本的 AutoCAD（见「多版本兼容」）。
+注意：版本无关 ProgID 的 `connectToActiveAcad()` 只匹配 CurVer 指向版本的运行实例，其他版本在跑也连不上——要“连任意运行实例”请用 `connectToAnyActiveAcad()`。
+
+映射类是晚绑定包装，2024 生成的类可直接驱动 2018–2026 全部版本（见「多版本兼容」）。
 
 ### 读取与解析实体
 
@@ -95,17 +102,28 @@ List<AcadEntity> selected = doc.getEntityList();
 
 ### 事件监听
 
+事件接收器覆盖全部类型库事件：`ApplicationEventSink`（23 个）、`DocumentEventSink`（28 个）、`ObjectEventSink`（1 个），方法默认空实现，按需覆盖。**支持匿名子类**：
+
 ```java
+import io.github.yahocen.jacob.com.DispatchEvents;
 import io.github.yahocen.jacob.com.Variant;
 import io.github.yahocen.acad.event.ApplicationEventSink;
 
-acad.addEventListener(new ApplicationEventSink() {
+// addEventListener 返回连接点句柄，可用于解绑
+DispatchEvents handle = acad.addEventListener(new ApplicationEventSink() {
     @Override
     public void BeginQuit(Variant[] args) {
         // AutoCAD 即将退出（JadeTracer 用这个钩子联动自身退出）
     }
 });
+
+// 不再需要时解除连接点，避免监听器累积泄漏
+handle.safeRelease();
 ```
+
+**线程要求**：事件是 AutoCAD 异步回调，必须在**专用 STA 线程**上持有对象并跑消息泵才能收到——继承 `io.github.yahocen.jacob.com.STA`，在 `OnInit()` 里创建对象并 `addEventListener`（构造器自动启动线程，`OnInit` 后进入消息泵），在 `OnQuit()` 里释放句柄、关文档、退 CAD。仅在普通线程绑定而不泵消息，事件不会触发。
+
+**已知限制**：当前原生连接点解析经 ProgID 恒定位到 Application coclass 的事件接口，且 AutoCAD 的 Document/Object 不实现 `IProvideClassInfo`，因此**只有 Application 事件能可靠绑定**；`DocumentEventSink`/`ObjectEventSink` 虽已定义，绑定 Document/Object 时会报 `Can't FindConnectionPoint`。彻底支持需在原生层按源对象自身接口 GUID 匹配其 coclass（`native/src/DispatchEvents.cpp` 的 `GetEventIID`），属后续增强项。
 
 ### 线程模型
 
@@ -150,7 +168,27 @@ DLL 是预编译产物，随仓库提交——纯 Java 消费方不需要 MSVC�
 
 ## 多版本兼容
 
-整条链路是 IDispatch 晚绑定：映射类只是类型化便利包装，不编译期绑定某个 TLB。2024 生成的类可直接驱动更新版本（新版成员是旧版超集）；连接方式见「使用 → 连接指定版本」。更旧版本支持需用对应 TLB 重新生成（`extract_tlb.py` 参数化进行中）；新版独有成员可经 `Dispatch.call` 原生调用。
+整条链路是 IDispatch 晚绑定：映射类只是类型化便利包装，不编译期绑定某个 TLB。经类型库逐接口比对，**2018（acax22）到 2026（acax25）的实体接口成员级完全一致**（仅差版本探测接口与 ComparedReference），2024 生成的这一套映射可直接驱动 2018–2026 全部版本；连接方式见「使用 → 连接指定版本」。新版独有成员可经 `Dispatch.call` 原生调用。
+
+### 多版本回归测试
+
+`src/test` 内置跨版本集成测试（本机需装有 AutoCAD，无则自动跳过）：
+
+```bash
+# 全部已安装版本跑「全图元覆盖 + 应用生命周期 + 连接运行实例」（每版本约 1–2 分钟）
+mvn test
+
+# 只测指定版本（ProgID 后缀或枚举名）
+mvn test -Dacad.versions=24.3,25.1
+
+# 让被测 CAD 窗口可见，便于人工观察
+mvn test -Dacad.visible=true
+```
+
+- `MultiVersionEntityCoverageTest`：每版本启动 CAD → 新建文档 → 创建约 50 种图元（曲线/文字/标注/填充/面域/三维实体/块与属性/网格）→ 校验 ObjectName 与包装类 → 另存 DWG → 重开比对实体数。逐图元收集结果，单个失败不影响其余图元，输出完整「版本 × 图元」矩阵。
+- `MultiVersionApplicationTest`：`createNewAcad`/`connectToActiveAcad` 的版本核对、文档生命周期、GetActiveObject 连接。
+- 启动策略（`AcadTestHarness`）：优先 ProgID `CoCreateInstance` 并核对 `Version`；ProgID 被卸载残留重定向或启动被阻（如 .NET 版本管理器干扰 2025/2026）时，自动回退「直接启动该版本 acad.exe（清除 `DOTNET_ROOT`）+ `GetActiveObject` 连接」。exe 路径自动扫描 `C:/Program Files/Autodesk`，也可用 `-Dacad.exe.<版本后缀>=<路径>` 指定。
+- 已知限制：`AddExtrudedSolid`/`AddRevolvedSolid` 系 Profile 为 byref Dispatch，AutoCAD 的 IDispatch 实现不接受任何后期绑定编码（VBA 早期绑定专属），测试中以可选步骤记录；三维实体由 `addBox`/`addCone` 等图元方法覆盖。
 
 ## 许可
 

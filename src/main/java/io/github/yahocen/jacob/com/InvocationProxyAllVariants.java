@@ -73,10 +73,8 @@ public class InvocationProxyAllVariants extends InvocationProxy {
 			Method targetMethod;
 			targetMethod = targetClass.getMethod(methodName,
                     Variant[].class);
-            // protected classes can't be invoked against even if they
-            // let you grab the method. you could do
-            // targetMethod.setAccessible(true);
-            // but that should be stopped by the security manager
+            // 允许非 public 声明类（匿名内部类/包私有类）的 public 回调方法被反射调用
+            targetMethod.setAccessible(true);
             Object mReturnedByInvocation = null;
             mReturnedByInvocation = targetMethod.invoke(mTargetObject,
                     new Object[] { targetParameters });

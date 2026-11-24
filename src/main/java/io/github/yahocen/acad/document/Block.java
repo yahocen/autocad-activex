@@ -111,8 +111,7 @@ public class Block extends ComCollection<AcadEntity> {
     }
 
     public Variant addCustomObject(Variant className) {
-        Variant result = Disp.call(getClass(), dispatch,"AddCustomObject", className);
-        return result;
+        return Disp.call(getClass(), dispatch,"AddCustomObject", className);
     }
 
     public int add3DFace(Variant point1, Variant point2, Variant point3, Variant point4) {
@@ -220,8 +219,7 @@ public class Block extends ComCollection<AcadEntity> {
     }
 
     public Variant addRegion(Variant objectList) {
-        Variant result = Disp.call(getClass(), dispatch,"AddRegion", objectList);
-        return result;
+        return Disp.call(getClass(), dispatch,"AddRegion", objectList);
     }
 
     public int addRevolvedSolid(Variant profile, Variant axisPoint, Variant axisDir, Variant angle) {
@@ -305,23 +303,19 @@ public class Block extends ComCollection<AcadEntity> {
     }
 
     public Variant unload() {
-        Variant result = Disp.call(getClass(), dispatch,"Unload");
-        return result;
+        return Disp.call(getClass(), dispatch,"Unload");
     }
 
     public Variant reload() {
-        Variant result = Disp.call(getClass(), dispatch,"Reload");
-        return result;
+        return Disp.call(getClass(), dispatch,"Reload");
     }
 
     public Variant bind(Variant bPrefixName) {
-        Variant result = Disp.call(getClass(), dispatch,"Bind", bPrefixName);
-        return result;
+        return Disp.call(getClass(), dispatch,"Bind", bPrefixName);
     }
 
     public Variant detach() {
-        Variant result = Disp.call(getClass(), dispatch,"Detach");
-        return result;
+        return Disp.call(getClass(), dispatch,"Detach");
     }
 
     public int addTable(Variant insertionPoint, Variant numRows, Variant numColumns, Variant rowHeight, Variant colWidth) {

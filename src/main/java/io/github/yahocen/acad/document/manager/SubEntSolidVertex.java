@@ -54,8 +54,7 @@ public class SubEntSolidVertex extends ComObject {
     }
 
     public Variant onModified() {
-        Variant result = Disp.call(getClass(), dispatch, "OnModified");
-        return result;
+        return Disp.call(getClass(), dispatch, "OnModified");
     }
 
 }

@@ -9,6 +9,7 @@ import io.github.yahocen.acad.document.element.Attribute;
 import io.github.yahocen.acad.document.element.AttributeReference;
 import io.github.yahocen.acad.document.element.BlockReference;
 import io.github.yahocen.acad.document.element.Circle;
+import io.github.yahocen.acad.document.element.ComparedReference;
 import io.github.yahocen.acad.document.element.DgnUnderlay;
 import io.github.yahocen.acad.document.element.Dim3PointAngular;
 import io.github.yahocen.acad.document.element.DimAligned;
@@ -89,6 +90,9 @@ public final class EntityRegistry {
             Map.entry("AcDbAttribute", AttributeReference.class),
             Map.entry("AcDbAttributeDefinition", Attribute.class),
             Map.entry("AcDbBlockReference", BlockReference.class),
+            // DWG 比较（DWGCOMPARE）激活时出现的比较参照实体，行为同块参照；
+            // 类型库无创建方法，仅读取/解析需要识别（2021+ 才有此 ObjectName）
+            Map.entry("AcDbComparedReference", ComparedReference.class),
             Map.entry("AcDbCircle", Circle.class),
             Map.entry("AcDbDgnReference", DgnUnderlay.class),
             Map.entry("AcDbDiametricDimension", DimDiametric.class),
