@@ -6,7 +6,7 @@ AutoCAD ActiveX/COM 自动化的 Java 库：通用 COM 桥接 + 类型化 AutoCA
 <dependency>
     <groupId>io.github.yahocen</groupId>
     <artifactId>autocad-activex</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.10</version>
 </dependency>
 ```
 

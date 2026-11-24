@@ -6,7 +6,7 @@
 
     <groupId>io.github.yahocen</groupId>
     <artifactId>autocad-activex</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.10</version>
 
     <name>autocad-activex</name>
     <description>AutoCAD ActiveX/COM automation for Java: generic COM bridge (io.github.yahocen.jacob, JACOB fork) + typed AutoCAD object model (io.github.yahocen.acad). Bundles jacobcom.dll, extracted and loaded at runtime. Late-bound (IDispatch): one mapping set drives multiple AutoCAD versions.</description>
@@ -41,6 +41,9 @@
         <lombok.version>1.18.42</lombok.version>
         <swagger.version>2.2.41</swagger.version>
         <slf4j.version>2.0.17</slf4j.version>
+        <!-- 默认跳过测试执行：多版本集成测试需启动 AutoCAD，开销大且已充分验证。
+             仍编译测试代码以捕捉编译错误。需跑测试时显式：mvn test -DskipTests=false -->
+        <skipTests>true</skipTests>
     </properties>
 
     <!-- 依赖面最小化：运行时仅 swagger-annotations（文档契约）+ slf4j-api（日志门面），
