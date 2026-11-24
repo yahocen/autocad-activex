@@ -38,6 +38,7 @@ extern "C"
   BOOL GetEventIID(IUnknown *, IID *, CComBSTR **, DISPID **, int *, LPOLESTR);
   BOOL GetEventIIDForTypeLib(BSTR, IID *, CComBSTR **, DISPID **, int *, LPOLESTR);
   BOOL getClassInfoFromProgId(LPOLESTR bsProgId, LPTYPEINFO *pClassInfo);
+  LPTYPEINFO getClassInfoFromObjectInterface(IUnknown *pUnk, LPOLESTR bsProgId);
   BOOL MapEventIIDs(IID *, CComBSTR **, DISPID **, int *, LPOLESTR, LPTYPEINFO);
 
   // extract a EventProxy* from a jobject
@@ -230,14 +231,21 @@ extern "C"
       HRESULT hr = pPCI->GetClassInfo(&pClassInfo);
       pPCI->Release();
       if (!SUCCEEDED(hr))
-        return false;
+        pClassInfo = NULL;
     }
-    else if (getClassInfoFromProgId(bsProgId, &pClassInfo))
+    // 源对象不实现 IProvideClassInfo 时（如 AutoCAD 的 Document/Object），用对象自身
+    // IDispatch 接口 GUID 在类型库里匹配它自己的 coclass，取到该对象的默认事件接口；
+    // 否则仅靠 ProgID 会恒解析到 Application coclass，导致 Document 事件 FindConnectionPoint 失败。
+    if (pClassInfo == NULL)
+    {
+      pClassInfo = getClassInfoFromObjectInterface(m_pObject, bsProgId);
+    }
+    if (pClassInfo == NULL && bsProgId != NULL && getClassInfoFromProgId(bsProgId, &pClassInfo))
     {
     }
-    else
+    if (pClassInfo == NULL)
     {
-      printf("GetEventIID: couldn't get IProvideClassInfo\n");
+      printf("GetEventIID: couldn't get class info\n");
       return false;
     }
 
@@ -296,6 +304,102 @@ extern "C"
     pClassInfo->Release();
 
     return (!IsEqualIID(*piid, GUID_NULL));
+  }
+
+  // 源对象不实现 IProvideClassInfo 时，用其 IDispatch 接口 GUID 在（经 ProgID 定位的）
+  // 类型库中匹配默认实现接口相同的 coclass，返回该 coclass 的 ITypeInfo。
+  // 这样 Document/Object 能取到各自的默认事件接口，而非 ProgID 恒指向的 Application 事件接口。
+  // 算法已用 pywin32 对 acax24 验证：Document→IAcadDocument→AcadDocument coclass→_DAcadDocumentEvents。
+  LPTYPEINFO getClassInfoFromObjectInterface(IUnknown *pUnk, LPOLESTR bsProgId)
+  {
+    if (bsProgId == NULL)
+      return NULL;
+    CComQIPtr<IDispatch, &IID_IDispatch> pDisp(pUnk);
+    if (!pDisp)
+      return NULL;
+    CComPtr<ITypeInfo> pObjTI;
+    if (FAILED(pDisp->GetTypeInfo(0, LOCALE_USER_DEFAULT, &pObjTI)) || !pObjTI)
+      return NULL;
+    TYPEATTR *pObjAttr = NULL;
+    if (FAILED(pObjTI->GetTypeAttr(&pObjAttr)) || !pObjAttr)
+      return NULL;
+    GUID ifaceGuid = pObjAttr->guid;
+    pObjTI->ReleaseTypeAttr(pObjAttr);
+
+    // 经 ProgID → CLSID → 注册表 TypeLib 加载类型库
+    CLSID clsid;
+    if (FAILED(CLSIDFromProgID(bsProgId, &clsid)))
+      return NULL;
+    LPOLESTR bsClsid = NULL;
+    if (FAILED(StringFromCLSID(clsid, &bsClsid)))
+      return NULL;
+    WCHAR subKey[160];
+    swprintf(subKey, 160, L"SOFTWARE\\Classes\\CLSID\\%s\\TypeLib", bsClsid);
+    CoTaskMemFree(bsClsid);
+    HKEY hKey = NULL;
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, subKey, 0, KEY_READ, &hKey) != ERROR_SUCCESS)
+      return NULL;
+    WCHAR libIdStr[64];
+    DWORD cb = sizeof(libIdStr);
+    DWORD type = 0;
+    LONG rc = RegQueryValueExW(hKey, NULL, NULL, &type, (BYTE *)libIdStr, &cb);
+    RegCloseKey(hKey);
+    if (rc != ERROR_SUCCESS)
+      return NULL;
+    GUID libid;
+    if (FAILED(CLSIDFromString(libIdStr, &libid)))
+      return NULL;
+    ITypeLib *pTL = NULL;
+    if (FAILED(LoadRegTypeLib(libid, 1, 0, LANG_NEUTRAL, &pTL)) || !pTL)
+      return NULL;
+
+    // 遍历 coclass，找默认（非 source）实现接口 GUID == ifaceGuid 者
+    LPTYPEINFO pResult = NULL;
+    UINT n = pTL->GetTypeInfoCount();
+    for (UINT i = 0; i < n && !pResult; i++)
+    {
+      LPTYPEINFO pTI = NULL;
+      if (FAILED(pTL->GetTypeInfo(i, &pTI)) || !pTI)
+        continue;
+      TYPEATTR *pTA = NULL;
+      if (SUCCEEDED(pTI->GetTypeAttr(&pTA)) && pTA)
+      {
+        if (pTA->typekind == TKIND_COCLASS)
+        {
+          for (UINT j = 0; j < pTA->cImplTypes && !pResult; j++)
+          {
+            int flags = 0;
+            if (SUCCEEDED(pTI->GetImplTypeFlags(j, &flags)) &&
+                (flags & IMPLTYPEFLAG_FDEFAULT) && !(flags & IMPLTYPEFLAG_FSOURCE))
+            {
+              HREFTYPE href;
+              if (SUCCEEDED(pTI->GetRefTypeOfImplType(j, &href)))
+              {
+                LPTYPEINFO pImplTI = NULL;
+                if (SUCCEEDED(pTI->GetRefTypeInfo(href, &pImplTI)) && pImplTI)
+                {
+                  TYPEATTR *pImplAttr = NULL;
+                  if (SUCCEEDED(pImplTI->GetTypeAttr(&pImplAttr)) && pImplAttr)
+                  {
+                    if (IsEqualGUID(pImplAttr->guid, ifaceGuid))
+                    {
+                      pResult = pTI; // 命中：保留 pTI（不置空），所有权转给 pResult
+                    }
+                    pImplTI->ReleaseTypeAttr(pImplAttr);
+                  }
+                  pImplTI->Release();
+                }
+              }
+            }
+          }
+        }
+        pTI->ReleaseTypeAttr(pTA); // 此时 pTI 仍有效（命中也未置空）
+      }
+      if (pTI && pTI != pResult)
+        pTI->Release(); // 未命中的释放；命中的保留
+    }
+    pTL->Release();
+    return pResult;
   }
 
   BOOL getClassInfoFromProgId(LPOLESTR bsProgId, LPTYPEINFO *pClassInfo)

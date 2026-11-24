@@ -121,9 +121,9 @@ DispatchEvents handle = acad.addEventListener(new ApplicationEventSink() {
 handle.safeRelease();
 ```
 
-**线程要求**：事件是 AutoCAD 异步回调，必须在**专用 STA 线程**上持有对象并跑消息泵才能收到——继承 `io.github.yahocen.jacob.com.STA`，在 `OnInit()` 里创建对象并 `addEventListener`（构造器自动启动线程，`OnInit` 后进入消息泵），在 `OnQuit()` 里释放句柄、关文档、退 CAD。仅在普通线程绑定而不泵消息，事件不会触发。
+**三类事件源均已支持**：Application / Document / Object 都能绑定。AutoCAD 的 Document/Object 不实现 `IProvideClassInfo`，原生层 `GetEventIID`（`native/src/DispatchEvents.cpp`）已增强为：当 `IProvideClassInfo` 不可用时，用源对象 `IDispatch::GetTypeInfo` 的接口 GUID 在类型库中匹配其自身 coclass，取到该对象自己的默认事件接口（而非 ProgID 恒指向的 Application 事件接口）。`MultiVersionEventBindingTest` 对 2018–2026 五版本回归守护。
 
-**已知限制**：当前原生连接点解析经 ProgID 恒定位到 Application coclass 的事件接口，且 AutoCAD 的 Document/Object 不实现 `IProvideClassInfo`，因此**只有 Application 事件能可靠绑定**；`DocumentEventSink`/`ObjectEventSink` 虽已定义，绑定 Document/Object 时会报 `Can't FindConnectionPoint`。彻底支持需在原生层按源对象自身接口 GUID 匹配其 coclass（`native/src/DispatchEvents.cpp` 的 `GetEventIID`），属后续增强项。
+**线程要求**：绑定/解绑是同步 COM 调用，在任意已初始化 COM 的线程上即可建立连接点。**回调投递**才需要消息泵——事件是 AutoCAD 异步回调，须由持有对象的 STA 线程泵消息才能收到：继承 `io.github.yahocen.jacob.com.STA`，`OnInit()` 里建对象并 `addEventListener`（构造器自动启动线程，随后进入消息泵），`OnQuit()` 里释放句柄、关文档、退 CAD。只绑定不泵消息，回调不会触发。
 
 ### 线程模型
 

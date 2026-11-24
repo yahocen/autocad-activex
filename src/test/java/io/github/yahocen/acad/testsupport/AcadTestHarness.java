@@ -15,58 +15,56 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * 多版本 AutoCAD 测试入口。
  * <p>
- * 版本选择规则（按优先级）：
- * <ol>
- *   <li>{@code -Dacad.versions=24.3,25}：逗号分隔的 ProgID 后缀或枚举名（AUTOCAD_2024）</li>
- *   <li>默认：探测本机注册表，跑所有已安装版本</li>
- *   <li>本机无 AutoCAD：assumeTrue 跳过，不报错（CI 无 CAD 环境友好）</li>
- * </ol>
- * 辅助开关：{@code -Dacad.visible=true} 让被测 CAD 窗口可见，便于人工观察；
- * {@code -Dacad.launch=exe} 强制全部走「直接启动 exe + GetActiveObject」路径。
+ * 版本选择：{@code -Dacad.versions=24.3,25}（ProgID 后缀或枚举名）；默认探测本机全部已装版本；
+ * 无 AutoCAD 时 assumeTrue 跳过。{@code -Dacad.visible=true} 显示窗口；
+ * {@code -Dacad.launch=exe} 强制直启 exe；{@code -Dacad.exe.<后缀>=路径} 指定 exe。
  * </p>
  * <p>
- * 启动策略（两台常见坑的自愈）：
- * <ol>
- *   <li>优先 ProgID CoCreate；连上后核对 Version 属性与 ProgID 版本号。</li>
- *   <li>版本不符（旧版本卸载后 ProgID 的 CLSID 被新版本重定向）或 CoCreate 失败
- *       （如 VMR 等工具把 DOTNET_ROOT 指向缺少 .NET 8 的目录，AutoCAD 2025/2026
- *       启动时弹 .NET 安装提示阻断 COM 初始化）时，回退为直接启动该版本的 acad.exe：
- *       清掉 DOTNET_ROOT 环境变量后启动子进程，再用 GetActiveObject(ProgID) 连接。
- *       exe 路径来自扫描 {@code C:\Program Files\Autodesk\AutoCAD <版本>\**\acad.exe}，
- *       或用 {@code -Dacad.exe.<后缀>=路径} 显式指定。</li>
- * </ol>
+ * <b>安全约束（共享机器，用户可能开着自己的 CAD）</b>：本 harness 只创建并清理<b>自己启动</b>的
+ * 实例——用 ProcessHandle 快照差集 / Process.pid() 跟踪_owned_ PID，绝不复用 GetActiveObject
+ * 命中的外来运行实例，也绝不关闭/退出/强杀非自己启动的进程。清理仅针对 tracked PID。
+ * </p>
+ * <p>
+ * 启动策略：ProgID CoCreate（AutoCAD 多实例，必为新进程）→ 核对 Version；版本不符（ProgID 被
+ * 卸载残留重定向）或 CoCreate 失败（如 DOTNET_ROOT 致 2025/2026 弹 .NET 窗）时，直启该版本
+ * acad.exe（清 DOTNET_ROOT）+ GetActiveObject 连接。被劫持 ProgID 跳过 CoCreate 以免崩溃留僵尸。
  * </p>
  */
 public final class AcadTestHarness {
 
     private static final Path AUTODESK_BASE = Path.of("C:\\Program Files\\Autodesk");
 
+    /** 本 harness 自己启动的 acad.exe PID（清理只针对这些，绝不触碰用户实例）。 */
+    private static final Set<Long> OWN_PIDS = ConcurrentHashMap.newKeySet();
+
+    /** CoCreate 失败过的 ProgID（同 JVM 内不再重试，直启 exe 提速）。 */
+    private static final Set<String> COCREATE_FAILED = ConcurrentHashMap.newKeySet();
+
     private AcadTestHarness() {
     }
 
-    /**
-     * 解析要测试的 AutoCAD 版本列表。
-     */
     public static List<AutoCadVersion> selectedVersions() {
         String prop = System.getProperty("acad.versions", "").trim();
         if (prop.isEmpty() || prop.equalsIgnoreCase("all")) {
             List<AutoCadVersion> installed = AutoCadVersion.detectInstalled();
             Assumptions.assumeTrue(!installed.isEmpty(),
-                    "本机未探测到可启动的 AutoCAD（注册表无有效的 AutoCAD.Application.* ProgID），跳过多版本测试");
+                    "本机未探测到可启动的 AutoCAD，跳过多版本测试");
             return installed;
         }
         List<AutoCadVersion> selected = new ArrayList<>();
         for (String token : prop.split(",")) {
             String t = token.trim();
-            if (t.isEmpty()) {
-                continue;
+            if (!t.isEmpty()) {
+                selected.add(parse(t));
             }
-            selected.add(parse(t));
         }
         return selected;
     }
@@ -79,21 +77,12 @@ public final class AcadTestHarness {
         }
     }
 
-    /**
-     * 被测 CAD 是否可见（默认隐藏提速）。
-     */
     public static boolean visible() {
         return Boolean.getBoolean("acad.visible");
     }
 
     /**
-     * 启动指定版本的 AutoCAD、新建文档、执行测试体，最后关文档、退 CAD。
-     * <p>
-     * 测试体里抛出的异常（含断言失败）会先走清理再原样上抛；
-     * 图元级别的失败建议用 {@link CadSession#step} 收集，不要直接抛。
-     * 退出后等待实例从 ROT 撤销，防止下个测试的复用预检连到濒死实例
-     * （COM 对象已断开，表现为 Invoke 报"句柄 ID"错误）。
-     * </p>
+     * 启动指定版本 AutoCAD、新建文档、执行测试体，最后清理自己启动的实例。
      */
     public static void withNewCad(AutoCadVersion version, Consumer<CadSession> body) {
         Point.resetBasePoint();
@@ -109,97 +98,141 @@ public final class AcadTestHarness {
                 closeQuietly(doc);
             }
         } finally {
-            quitAndWaitGone(app, version);
+            cleanup(app);
             if (session != null) {
                 System.out.println("==== " + session.summary() + " ====");
             }
         }
     }
 
-    /**
-     * 供直接持有 Application 的测试使用：退出并等待实例从 ROT 消失（最多 60 秒）。
-     */
+    /** 供直接持有 Application 的测试使用：退出并强杀自己启动的实例。 */
     public static void shutdown(Application app, AutoCadVersion version) {
-        quitAndWaitGone(app, version);
+        cleanup(app);
     }
 
-    /** CoCreate 失败过的 ProgID（同 JVM 内不再重试，直启 exe 提速，如 .NET 弹窗阻断的 2026） */
-    private static final java.util.Set<String> COCREATE_FAILED = java.util.concurrent.ConcurrentHashMap.newKeySet();
-
     /**
-     * 智能启动：优先复用运行实例 → ProgID CoCreate → 直接启动 exe 再连接。
-     * <p>
-     * ProgID 被劫持的版本（{@link AutoCadVersion#isProgIdHijacked()}，卸载残留被新版本重定向）
-     * 跳过 CoCreate——以错误 CLSID 激活会让 AutoCAD 自行崩溃留下僵尸进程占住 ROT。
-     * </p>
+     * 启动指定版本的新实例（绝不复用外来运行实例），并跟踪其 PID。
      */
     public static Application launch(AutoCadVersion version) {
         String suffix = version.getProgId().substring("AutoCAD.Application.".length());
-        // 1. 复用预检：已有本版本的健康运行实例则直接连接（免重复拉起，也绕开 CoCreate 卡顿）
-        Application running = tryConnectRunning(version, suffix);
-        if (running != null) {
-            System.out.println("复用已运行的 " + version.getRelease() + " 实例");
-            return running;
-        }
         boolean hijacked = version.isProgIdHijacked();
         if (hijacked) {
-            System.out.println("ProgID " + version.getProgId() + " 已被其他版本劫持，跳过 CoCreate 直接定位 exe");
+            System.out.println("ProgID " + version.getProgId() + " 已被劫持，跳过 CoCreate 直启 exe");
         }
-        if (!hijacked && !"exe".equalsIgnoreCase(System.getProperty("acad.launch"))
+        // R25+（2025/2026）需 .NET 8 桌面运行时；若 DOTNET_ROOT 指向的目录缺 .NET 8，
+        // CoCreate 会弹 ".NET Installation Required" 模态框阻断 COM 初始化（卡约 120 秒后失败，
+        // 还留下坏实例干扰后续测试）。预判跳过，直接走清掉 DOTNET_ROOT 的 exe 路径。
+        boolean dotnetBlocked = needsNet8(version) && dotnetRootLacksNet8();
+        if (dotnetBlocked) {
+            System.out.println("DOTNET_ROOT 缺 .NET 8，" + version.getRelease() + " 跳过 CoCreate 直启 exe");
+        }
+        if (!hijacked && !dotnetBlocked && !"exe".equalsIgnoreCase(System.getProperty("acad.launch"))
                 && !COCREATE_FAILED.contains(version.getProgId())) {
+            Set<Long> before = snapshotAcadPids();
             try {
                 Application app = Application.createNewAcad(version, visible());
+                trackNewPids(before); // CoCreate 必为新进程，差集即我们启动的
                 if (app.getVersion().startsWith(suffix)) {
                     return app;
                 }
-                // ProgID 被重定向到别的版本（如卸载旧版后 CLSID 指到新版 exe）：
-                // 该实例与本目标版本共用同一 CLSID 的 ROT 项，必须等它退干净再直启 exe，
-                // 否则 GetActiveObject 会连到这个濒死实例（Can't map names to dispid）
-                System.out.printf("ProgID %s 启动的实例版本不符（%s），回退直接启动 exe%n",
+                // ProgID 被重定向到别版本：关掉这个我们刚启动的错误实例，再直启正确 exe
+                System.out.printf("ProgID %s 启动的实例版本不符（%s），回退直启 exe%n",
                         version.getProgId(), app.getVersion());
-                quitAndWaitGone(app, version);
+                quitQuietly(app);
             } catch (AcadException e) {
                 COCREATE_FAILED.add(version.getProgId());
-                System.out.println("ProgID 启动失败，回退直接启动 exe：" + e.getMessage());
+                System.out.println("ProgID 启动失败，回退直启 exe：" + e.getMessage());
             }
         }
         return startExeAndConnect(version, resolveExe(version));
     }
 
-    private static Application tryConnectRunning(AutoCadVersion version, String suffix) {
+    /**
+     * 直启 exe（清 DOTNET_ROOT）+ GetActiveObject 连接并核对版本。跟踪进程 PID。
+     * 连到错误版本时只重试不强杀（可能是用户实例）；超时则安全失败。
+     */
+    private static Application startExeAndConnect(AutoCadVersion version, Path exe) {
+        System.out.println("直接启动 " + exe);
+        String suffix = version.getProgId().substring("AutoCAD.Application.".length());
         try {
-            Application app = Application.connectToActiveAcad(version);
-            if (app.getVersion().startsWith(suffix)) {
-                app.setVisible(visible());
-                return app;
+            ProcessBuilder pb = new ProcessBuilder(exe.toString());
+            pb.environment().keySet().removeIf(k -> k.startsWith("DOTNET_ROOT"));
+            Process process = pb.start();
+            OWN_PIDS.add(process.pid());
+            for (int i = 0; i < 150; i++) {
+                try {
+                    Application app = Application.connectToActiveAcad(version);
+                    if (app.getVersion().startsWith(suffix)) {
+                        app.setVisible(visible());
+                        return app;
+                    }
+                    // 命中的是别版本（可能用户实例）：不强杀，等我们的实例注册上来
+                } catch (Exception notYet) {
+                    // 尚未注册 ROT
+                }
+                if (!process.isAlive()) {
+                    throw new IllegalStateException("acad.exe 进程已退出：" + exe);
+                }
+                Internal.sleep(1000);
             }
-        } catch (Exception noRunning) {
-            // 无运行实例
+            throw new IllegalStateException("连接 " + version.getRelease() + " 超时（150 秒）");
+        } catch (IOException e) {
+            throw new IllegalStateException("启动 acad.exe 失败：" + exe, e);
         }
-        return null;
     }
 
     /**
-     * 退出错误实例并等待其从 ROT 消失（连不上即视为已退出），最多 60 秒。
+     * 清理：退出我们启动的实例（关其文档 + quit），再强杀仍存活的 tracked PID。
+     * 只触碰 OWN_PIDS，绝不连接/关闭/强杀外来实例。
      */
-    private static void quitAndWaitGone(Application app, AutoCadVersion version) {
+    private static void cleanup(Application app) {
         quitQuietly(app);
-        for (int i = 0; i < 60; i++) {
-            try {
-                Application probe = Application.connectToActiveAcad(version);
-                // 还能连上：再踢一次直到退干净
-                quitQuietly(probe);
-            } catch (Exception gone) {
-                return;
-            }
-            Internal.sleep(1000);
-        }
-        System.out.println("等待错误实例退出超时（继续尝试直启 exe）");
+        forceKillOwnPids();
     }
 
-    /**
-     * 解析指定版本的 acad.exe：先取 -Dacad.exe.<版本后缀>，再扫描 Autodesk 默认安装目录。
-     */
+    /** 强杀本 harness 自己启动且仍存活的 acad.exe（按 tracked PID，非时间 pattern）。 */
+    public static void forceKillOwnPids() {
+        for (Long pid : OWN_PIDS) {
+            ProcessHandle.of(pid).ifPresent(p -> {
+                if (p.isAlive()) {
+                    p.destroyForcibly();
+                }
+            });
+        }
+    }
+
+    private static Set<Long> snapshotAcadPids() {
+        return ProcessHandle.allProcesses()
+                .filter(p -> p.info().command().map(c -> c.toLowerCase().contains("acad.exe")).orElse(false))
+                .map(ProcessHandle::pid)
+                .collect(Collectors.toSet());
+    }
+
+    private static void trackNewPids(Set<Long> before) {
+        Set<Long> now = snapshotAcadPids();
+        now.removeAll(before);
+        OWN_PIDS.addAll(now);
+    }
+
+    /** R25+（2025 起）的 AutoCAD 依赖 .NET 8 桌面运行时。 */
+    private static boolean needsNet8(AutoCadVersion version) {
+        return version.ordinal() >= AutoCadVersion.AUTOCAD_2025.ordinal();
+    }
+
+    /** DOTNET_ROOT 指向的目录是否缺少 .NET 8 桌面运行时（缺则 CoCreate 必被 .NET 弹窗阻断）。 */
+    private static boolean dotnetRootLacksNet8() {
+        String root = System.getenv("DOTNET_ROOT");
+        if (root == null || root.isBlank()) {
+            return false; // 未设 DOTNET_ROOT，走标准注册表解析，通常正常
+        }
+        Path desktop = Path.of(root, "shared", "Microsoft.WindowsDesktop.App");
+        try (var dirs = Files.list(desktop)) {
+            return dirs.noneMatch(p -> p.getFileName().toString().startsWith("8."));
+        } catch (IOException e) {
+            return true; // 目录不存在/不可读：视为缺 .NET 8
+        }
+    }
+
     private static Path resolveExe(AutoCadVersion version) {
         String suffix = version.getProgId().substring("AutoCAD.Application.".length());
         String override = System.getProperty("acad.exe." + suffix);
@@ -215,51 +248,10 @@ public final class AcadTestHarness {
                 return exe;
             }
         } catch (IOException ignore) {
-            // 目录不存在等，走下面的报错
+            // 目录不存在等
         }
         throw new IllegalStateException("找不到 " + version.getRelease()
                 + " 的 acad.exe，可用 -Dacad.exe." + suffix + "=<路径> 指定");
-    }
-
-    /**
-     * 直接启动 exe（清掉 DOTNET_ROOT，规避 .NET 版本管理器导致 2025/2026 弹窗），
-     * 再用 GetActiveObject(ProgID) 连接并核对版本，最多等待 150 秒。
-     * 连到错误版本（同 CLSID 的残留实例）时踢掉重试。
-     */
-    private static Application startExeAndConnect(AutoCadVersion version, Path exe) {
-        System.out.println("直接启动 " + exe);
-        String suffix = version.getProgId().substring("AutoCAD.Application.".length());
-        try {
-            ProcessBuilder pb = new ProcessBuilder(exe.toString());
-            pb.environment().keySet().removeIf(k -> k.startsWith("DOTNET_ROOT"));
-            Process process = pb.start();
-            for (int i = 0; i < 150; i++) {
-                try {
-                    Application app = Application.connectToActiveAcad(version);
-                    try {
-                        if (app.getVersion().startsWith(suffix)) {
-                            app.setVisible(visible());
-                            return app;
-                        }
-                        // 连到了同 CLSID 的错误版本残留实例：踢掉，等正确的注册上来
-                        System.out.println("连到错误版本实例（" + app.getVersion() + "），踢掉重试");
-                        quitQuietly(app);
-                    } catch (Exception brokenProxy) {
-                        // 濒死代理：当作未就绪，下一轮重试
-                    }
-                } catch (Exception notYet) {
-                    // GetActiveObject 未命中：目标实例尚未注册 ROT
-                }
-                if (!process.isAlive()) {
-                    throw new IllegalStateException("acad.exe 进程已退出：" + exe);
-                }
-                Internal.sleep(1000);
-            }
-            process.destroy();
-            throw new IllegalStateException("连接 " + version.getRelease() + " 超时（150 秒）");
-        } catch (IOException e) {
-            throw new IllegalStateException("启动 acad.exe 失败：" + exe, e);
-        }
     }
 
     private static void closeQuietly(Document doc) {
@@ -270,9 +262,8 @@ public final class AcadTestHarness {
         }
     }
 
+    /** 关闭我们启动实例的文档并退出（该实例只含测试文档，安全）。 */
     private static void quitQuietly(Application app) {
-        // 先关掉所有文档（含 CAD 启动时自带的空白图），否则 QUIT 在隐藏实例上
-        // 可能弹"保存修改"模态框，模态框不可见 → 进程卡成僵尸并占住 ROT 项
         try {
             var docs = app.getDocuments();
             int guard = 20;
@@ -293,7 +284,7 @@ public final class AcadTestHarness {
         try {
             app.quit();
         } catch (Exception e) {
-            System.out.println("退出 AutoCAD 失败（忽略，进程可能残留）：" + e);
+            System.out.println("退出 AutoCAD 失败（忽略，由 tracked PID 兜底）：" + e);
         }
     }
 }
