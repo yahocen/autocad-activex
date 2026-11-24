@@ -110,14 +110,16 @@ for name, item in DATA.items():
 
 missing = []
 for tlb_name in sorted(tlb_entities):
+    if tlb_name == 'AcadSubEntity':
+        continue  # 子实体引用基类，非可绘图实体，封装于 manager/SubEntity.java（不在 element 目录）
     java_name = CLASS_NAMES.get(tlb_name, tlb_name.replace('Acad', ''))
     if java_name not in java_files:
         missing.append((tlb_name, java_name))
         print(f"  MISSING: {tlb_name} → {java_name}.java")
 
-# SubEntity is special — it has object_name=AcDbEntity but is NOT a drawable entity
-if 'AcadSubEntity' in tlb_entities and 'AcadSubEntity' not in [m[0] for m in missing]:
-    print(f"  NOTE: AcadSubEntity (ObjectName=AcDbEntity) is a sub-entity reference, not a drawable entity — excluded from generation")
+# SubEntity is special — object_name=AcDbEntity but NOT a drawable entity; wrapped in manager package
+if 'AcadSubEntity' in tlb_entities:
+    print("  NOTE: AcadSubEntity (ObjectName=AcDbEntity) 是子实体引用基类，非可绘图实体，封装于 manager/SubEntity.java")
 
 if not missing:
     print(f"  All {len(tlb_entities)} concrete entity types have Java classes ✓")
